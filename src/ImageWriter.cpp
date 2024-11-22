@@ -35,8 +35,8 @@ bool ImageWriter::writePPM() const {
     // Write the header
     outFile << getPPMHeader();
     // Write the pixel data in ASCII format
-    for (int j = 0; j < height; ++j) {
-        for (int i = 0; i < width; ++i) {
+    for (int j = 0; j < height; j++) {
+        for (int i = width - 1; i >= 0; i--) {
             int index = (j * width + i);
             outFile << get_color_string(pixelData[index]) << '\n';
         }
