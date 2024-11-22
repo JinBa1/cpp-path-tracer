@@ -1,7 +1,9 @@
 #ifndef VEC3_H
 #define VEC3_H
-#include "rtweekend.h"
 
+
+#include <cmath>
+#include <iostream>
 
 class vec3 {
   public:

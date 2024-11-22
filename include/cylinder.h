@@ -6,21 +6,39 @@
 
 class cylinder : public hittable {
   public:
+    cylinder(const point3& center, const vec3& axis, double radius, double height, material* mat_ptr)
+        : center(center), axis(unit_vector(axis)), radius(std::fmax(0, radius)), height(std::fmax(0, height)), mat_ptr(mat_ptr) {}
+
+bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+    hit_record temp_rec;
+    bool hit_anything = false;
+    auto closest_so_far = ray_t.max;
+
+    // Check intersection with the side surface
+    if (hit_cylinder_side(r, interval(ray_t.min, closest_so_far), temp_rec)) {
+        hit_anything = true;
+        closest_so_far = temp_rec.t;
+        rec = temp_rec; // Update the hit_record with the closest hit
+    }
+
+    // Check intersection with the top and bottom caps
+    if (hit_cylinder_caps(r, interval(ray_t.min, closest_so_far), temp_rec)) {
+        hit_anything = true;
+        closest_so_far = temp_rec.t;
+        rec = temp_rec; // Update the hit_record with the closest hit
+    }
+
+    return hit_anything;
+}
+
+  private:
+
     point3 center;  // Center of the cylinder (midpoint along the height)
     vec3 axis;      // Unit vector along the cylinder's axis
     double radius;  // Radius of the cylinder
     double height;  // Total height of the cylinder
+    material* mat_ptr;
 
-    cylinder(const point3& center, const vec3& axis, double radius, double height)
-        : center(center), axis(unit_vector(axis)), radius(std::fmax(0, radius)), height(std::fmax(0, height)) {}
-
-    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-        bool hit_side = hit_cylinder_side(r, ray_t, rec);
-        bool hit_caps = hit_cylinder_caps(r, ray_t, rec);
-        return hit_side || hit_caps;
-    }
-
-  private:
     // Check intersection with the cylinder's side surface
     bool hit_cylinder_side(const ray& r, interval ray_t, hit_record& rec) const {
         vec3 oc = r.origin() - center;
@@ -61,6 +79,10 @@ class cylinder : public hittable {
         outward_normal = unit_vector(outward_normal);
 
         rec.set_face_normal(r, outward_normal);
+
+        // Update the material in the hit record
+        rec.mat_ptr = mat_ptr;
+
         return true;
     }
 
@@ -71,16 +93,16 @@ class cylinder : public hittable {
         point3 bottom_center = center - half_height * axis;
 
         // Check intersection with the top cap
-        if (hit_disk(r, top_center, ray_t, rec))
+        if (hit_disk(r, top_center, ray_t, rec, true))
             return true;
 
         // Check intersection with the bottom cap
-        return hit_disk(r, bottom_center, ray_t, rec);
+        return hit_disk(r, bottom_center, ray_t, rec, false);
     }
 
     // Check intersection with a disk (cap)
-    bool hit_disk(const ray& r, const point3& disk_center, interval ray_t, hit_record& rec) const {
-        vec3 normal = axis;  // Normal to the disk
+    bool hit_disk(const ray& r, const point3& disk_center, interval ray_t, hit_record& rec, bool is_top) const {
+        vec3 normal = is_top ? axis : -axis; // Use inverted normal for the bottom cap
         double t = dot(disk_center - r.origin(), normal) / dot(r.direction(), normal);
 
         if (!ray_t.surrounds(t))
@@ -94,6 +116,10 @@ class cylinder : public hittable {
         rec.t = t;
         rec.p = p;
         rec.set_face_normal(r, normal);
+
+        // Assign the material pointer
+        rec.mat_ptr = mat_ptr;
+
         return true;
     }
 };

@@ -6,8 +6,8 @@
 
 class triangle : public hittable {
   public:
-    triangle(const point3& v0, const point3& v1, const point3& v2)
-        : v0(v0), v1(v1), v2(v2) {}
+    triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr)
+        : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr) {}
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         // Using the Möller–Trumbore algorithm for ray-triangle intersection
@@ -47,11 +47,15 @@ class triangle : public hittable {
         vec3 outward_normal = unit_vector(cross(edge1, edge2)); // Normalize the normal
         rec.set_face_normal(r, outward_normal);
 
+        // Set the material pointer in hit_record
+        rec.mat_ptr = mat_ptr;
+
         return true;
     }
 
   private:
     point3 v0, v1, v2; // Triangle vertices
+    material* mat_ptr;
 };
 
 #endif

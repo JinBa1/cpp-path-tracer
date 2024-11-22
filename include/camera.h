@@ -4,6 +4,7 @@
 
 #include "hittable.h"
 #include "ImageWriter.h"
+#include "light.h"
 
 class camera {
   public:
@@ -20,7 +21,7 @@ class camera {
 
     std::string filename = "output.ppm";    // Output filename
 
-    void render(const hittable& world) {
+    void render_binary(const hittable& world) {
         initialize();
 
         std::vector<color> pixelData(image_width * image_height);
@@ -32,7 +33,7 @@ class camera {
                 auto ray_direction = pixel_center - center;
                 ray r(center, ray_direction);
 
-                color pixel_color = ray_color(r, world);
+                color pixel_color = ray_color_binary(r, world);
                 pixelData[j * image_width + i] = pixel_color;
             }
         }
@@ -49,6 +50,39 @@ class camera {
             std::cerr << "Failed to write image." << std::endl;
         }
     }
+
+    void render(const hittable& world, const light& lights) {
+        initialize();
+
+        std::vector<color> pixelData(image_width * image_height);
+
+        for (int j = 0; j < image_height; j++) {
+            std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+            for (int i = 0; i < image_width; i++) {
+                auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+                auto ray_direction = pixel_center - center;
+                ray r(center, ray_direction);
+
+                color pixel_color = ray_color_phong(r, world, lights);
+                pixelData[j * image_width + i] = pixel_color;
+            }
+        }
+
+        std::clog << "\rDone.                 \n";
+
+        std::string outputDir = "/home/jin/cgr/rt/output/";
+        ImageWriter writer(pixelData, image_width, image_height, outputDir + filename);
+
+        // Write the PPM file
+        if (writer.writePPM()) {
+            std::cout << "Image written successfully to " << filename << std::endl;
+        } else {
+            std::cerr << "Failed to write image." << std::endl;
+        }
+    }
+
+
+
   private:
     /* Private Camera Variables Here */
     // int    image_height;   // Rendered image height
@@ -98,7 +132,7 @@ class camera {
         pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
     }
 
-    color ray_color(const ray& r, const hittable& world) const {
+    color ray_color_binary(const ray& r, const hittable& world) const {
         hit_record rec;
 
         if (world.hit(r, interval(0, infinity), rec)) {
@@ -111,6 +145,35 @@ class camera {
         // return (1.0-a)*color(1.0, 1.0, 1.0) + a*color(0.5, 0.7, 1.0);
         return background;
     }
+
+    color ray_color_phong(const ray& r, const hittable& world, const light& lights) const {
+        hit_record rec;
+
+        // If the ray hits nothing, return the background color.
+        if (!world.hit(r, interval(0.001, infinity), rec)) {
+            return background;
+        }
+
+        // Compute Blinn-Phong shading at the intersection point
+        vec3 view_dir = unit_vector(-r.direction());
+        color local_shading = lights.compute_lighting(rec.p, rec.normal, view_dir, *rec.mat_ptr);
+
+        return local_shading;
+    }
+
+    // // DEBUG with normal color
+    // color ray_color_phong(const ray& r, const hittable& world, const light& lights) const {
+    //     hit_record rec;
+
+    //     if (world.hit(r, interval(0.001, infinity), rec)) {
+    //         // Map the normal to a color in the [0, 1] range
+    //         vec3 unit_normal = 0.5 * (rec.normal + vec3(1.0, 1.0, 1.0));
+    //         return color(unit_normal.x(), unit_normal.y(), unit_normal.z());
+    //     }
+
+    //     // If no hit, return background color
+    //     return color(0.25, 0.25, 0.25); // Gray background
+    // }
 };
 
 #endif
