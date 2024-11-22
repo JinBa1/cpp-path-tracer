@@ -1,3 +1,0 @@
-/home/jin/cgr/rt/build/CMakeFiles/ray_tracer.dir
-/home/jin/cgr/rt/build/CMakeFiles/edit_cache.dir
-/home/jin/cgr/rt/build/CMakeFiles/rebuild_cache.dir

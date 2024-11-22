@@ -1,1 +1,0 @@
-/usr/bin/g++ -g CMakeFiles/ray_tracer.dir/src/ImageWriter.cpp.o CMakeFiles/ray_tracer.dir/src/interval.cpp.o CMakeFiles/ray_tracer.dir/src/main.cpp.o -o ray_tracer 
