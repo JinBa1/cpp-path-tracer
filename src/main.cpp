@@ -4,7 +4,7 @@
 #include <fstream>
 #include <vector>
 #include "camera.h"
-#include "hittable.h"
+// #include "hittable.h"
 #include "hittable_list.h"
 #include "sphere.h"
 #include "cylinder.h"
@@ -67,6 +67,7 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
     cam.background = color(scene_data["scene"]["backgroundcolor"][0], 
                            scene_data["scene"]["backgroundcolor"][1], 
                            scene_data["scene"]["backgroundcolor"][2]);
+    cam.exposure = camera_data["exposure"];
 
     // Parse light sources
     for (const auto& light_data : scene_data["scene"]["lightsources"]) {
@@ -91,6 +92,10 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
         mat->specularexponent = mat_data["specularexponent"];
         mat->diffusecolor = color(mat_data["diffusecolor"][0], mat_data["diffusecolor"][1], mat_data["diffusecolor"][2]);
         mat->specularcolor = color(mat_data["specularcolor"][0], mat_data["specularcolor"][1], mat_data["specularcolor"][2]);
+        mat->is_reflective = mat_data["isreflective"];
+        mat->reflectivity = mat_data["reflectivity"];   
+        mat->is_refractive = mat_data["isrefractive"];
+        mat->refractiveindex = mat_data["refractiveindex"];
 
         if (type == "sphere") {
             world.add(make_shared<sphere>(
@@ -122,8 +127,9 @@ int main() {
     // Load JSON file
     std::string inputDir = "/home/jin/cgr/rt/data/jsons/";
     std::string jsonName = "scene";
+    std::string extension = ".ppm";
     std::ifstream input_file(inputDir+jsonName+".json");
-    int output_id = 1;
+    int output_id = 9;
     if (!input_file) {
         std::cerr << "Error: Could not open the JSON file." << std::endl;
         return 1;
@@ -140,7 +146,7 @@ int main() {
 
     parse_scene(scene_data, world, lights, cam);
 
-    cam.filename = jsonName + std::to_string(output_id) + ".ppm";
+    cam.filename = jsonName + std::to_string(output_id) + extension;
 
     // cam.render_binary(world);
 

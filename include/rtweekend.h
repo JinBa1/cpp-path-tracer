@@ -33,5 +33,4 @@ inline double degrees_to_radians(double degrees) {
 #include "interval.h"
 #include "material.h"
 
-
 #endif

@@ -21,21 +21,35 @@ class point_light : public light {
             const point3& p,
             const vec3& normal,
             const vec3& view_dir,
-            const material& mat
+            const material& mat,
+            const hittable& world
         ) const override {
-            vec3 light_dir;
-            color light_intensity = intensity_at(p, light_dir);
+                vec3 light_dir;
+                color light_intensity = intensity_at(p, light_dir);
 
-            // Diffuse contribution
-            double diff = std::max(0.0, dot(normal, light_dir));
-            color diffuse = mat.kd * mat.diffusecolor * light_intensity * diff;
+                // Shadow factor (0 for fully shadowed, 1 for fully lit)
+                double shadow = shadow_factor(p, world);
 
-            // Specular contribution
-            vec3 halfway = unit_vector(light_dir + view_dir);
-            double spec = pow(std::max(0.0, dot(normal, halfway)), mat.specularexponent);
-            color specular = mat.ks * mat.specularcolor * light_intensity * spec;
+                // Diffuse contribution
+                double diff = std::max(0.0, dot(normal, light_dir));
+                color diffuse = shadow * mat.kd * mat.diffusecolor * light_intensity * diff;
 
-            return diffuse + specular;
+                // Specular contribution
+                vec3 halfway = unit_vector(light_dir + view_dir);
+                double spec = pow(std::max(0.0, dot(normal, halfway)), mat.specularexponent);
+                color specular = shadow * mat.ks * mat.specularcolor * light_intensity * spec;
+
+                return diffuse + specular;
+        }
+
+        double shadow_factor(const point3& p, const hittable& world) const override {
+            vec3 light_dir = unit_vector(position - p);
+            ray shadow_ray(p + 0.001 * light_dir, light_dir);
+
+            hit_record shadow_rec;
+            bool is_shadowed = world.hit(shadow_ray, interval(0.001, infinity), shadow_rec);
+
+            return is_shadowed ? 0.0 : 1.0; // Fully shadowed or fully illuminated
         }
 };
 

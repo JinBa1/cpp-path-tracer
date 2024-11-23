@@ -30,14 +30,32 @@ class light_list : public light {
             return total_intensity;
         }
 
-        color compute_lighting(const point3& p, const vec3& normal, const vec3& view_dir, const material& mat) const override {
+        color compute_lighting(
+            const point3& p, 
+            const vec3& normal, 
+            const vec3& view_dir, 
+            const material& mat, 
+            const hittable& world
+        ) const override {
+
             color result(0, 0, 0);
 
             for (const auto& l : lights) {
-                result += l->compute_lighting(p, normal, view_dir, mat);
+                result += l->compute_lighting(p, normal, view_dir, mat, world);
             }
 
             return result;
+        }
+
+        double shadow_factor(const point3& p, const hittable& world) const override {
+            double total_factor = 0.0;
+
+            for (const auto& l : lights) {
+                total_factor += l->shadow_factor(p, world);
+            }
+
+            // Average the shadow contributions
+            return total_factor / lights.size();
         }
 };
 

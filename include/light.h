@@ -2,6 +2,7 @@
 #define LIGHT_H
 
 #include "rtweekend.h"
+#include "hittable.h"
 
 class light {
     public:
@@ -13,8 +14,14 @@ class light {
         const point3& p,
         const vec3& normal,
         const vec3& view_dir,
-        const material& mat
+        const material& mat,
+        const hittable& world
      ) const = 0;
+
+    // New method to determine shadow contribution
+    virtual double shadow_factor(const point3& p, const hittable& world) const = 0;
 };
+
+
 
 #endif // LIGHT_H
