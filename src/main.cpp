@@ -153,7 +153,7 @@ int main() {
     std::string jsonName = "scene";
     std::string extension = ".ppm";
     std::ifstream input_file(inputDir+jsonName+".json");
-    int output_id = 20;
+    int output_id = 23;
     if (!input_file) {
         std::cerr << "Error: Could not open the JSON file." << std::endl;
         return 1;
@@ -172,11 +172,13 @@ int main() {
 
     cam.filename = jsonName + std::to_string(output_id) + extension;
 
+    cam.samples_per_pixel = 10;
+
     // Start timing
     auto start = std::chrono::high_resolution_clock::now();
 
-    // Build the BVH
-    world.build();
+    // // Build the BVH
+    // world.build();
 
     // cam.render_binary(world);
     cam.render(world, lights);
