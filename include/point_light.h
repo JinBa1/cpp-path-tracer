@@ -57,7 +57,7 @@ class point_light : public light {
             hit_record shadow_rec;
             bool is_shadowed = world.hit(shadow_ray, interval(0.001, infinity), shadow_rec);
 
-            return is_shadowed ? 0.0 : 1.0; // Fully shadowed or fully illuminated
+            return is_shadowed ? 0.2 : 1.0; // Fully shadowed or fully illuminated
         }
 };
 

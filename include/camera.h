@@ -60,11 +60,12 @@ class camera {
 
     // Tone mapping selector
     color tone_map(const vec3& hdr_color) const {
-        double exp_exposure = 1.0 - exposure;
+        double exp_exposure = 1.0 + exposure;
         return linear_tone_map(hdr_color, exp_exposure);
         // return reinhard_tone_map(hdr_color, exp_exposure);
         // return filmic_tone_map(hdr_color, exp_exposure);
         // return luminance_based_scaling(hdr_color, exp_exposure);
+        // return hdr_color;
     }
 
     void render(const hittable& world, const light& lights) {

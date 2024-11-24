@@ -3,38 +3,28 @@
 
 #include "rtweekend.h"
 #include "hittable.h"
+#include "aabb.h"
 
 #include <vector>
+#include <memory>
 
+// Forward declaration of bvh_node
+class bvh_node;
 
 class hittable_list : public hittable {
   public:
     std::vector<shared_ptr<hittable>> objects;
+    std::shared_ptr<bvh_node> root;  // BVH root node
 
-    hittable_list() {}
-    hittable_list(shared_ptr<hittable> object) { add(object); }
+    hittable_list();
+    hittable_list(std::shared_ptr<hittable> object);
 
-    void clear() { objects.clear(); }
+    void clear();
+    void add(std::shared_ptr<hittable> object);
+    void build();
 
-    void add(shared_ptr<hittable> object) {
-        objects.push_back(object);
-    }
-
-    bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
-        hit_record temp_rec;
-        bool hit_anything = false;
-        auto closest_so_far = ray_t.max;
-
-        for (const auto& object : objects) {
-            if (object->hit(r, interval(ray_t.min, closest_so_far), temp_rec)) {
-                hit_anything = true;
-                closest_so_far = temp_rec.t;
-                rec = temp_rec;
-            }
-        }
-
-        return hit_anything;
-    }
+    bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
+    aabb bounding_box() const override;
 };
 
 #endif

@@ -150,10 +150,10 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
 int main() {
     // Load JSON file
     std::string inputDir = "/home/jin/cgr/rt/data/jsons/";
-    std::string jsonName = "texture_test";
+    std::string jsonName = "scene";
     std::string extension = ".ppm";
     std::ifstream input_file(inputDir+jsonName+".json");
-    int output_id = 3;
+    int output_id = 20;
     if (!input_file) {
         std::cerr << "Error: Could not open the JSON file." << std::endl;
         return 1;
@@ -174,6 +174,9 @@ int main() {
 
     // Start timing
     auto start = std::chrono::high_resolution_clock::now();
+
+    // Build the BVH
+    world.build();
 
     // cam.render_binary(world);
     cam.render(world, lights);

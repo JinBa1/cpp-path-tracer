@@ -8,7 +8,9 @@ class triangle : public hittable {
   public:
     triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr)
         : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
-        uv0(vec3(0,0,0)), uv1(1,0,0), uv2(0,1,0) {}
+        uv0(vec3(0,0,0)), uv1(1,0,0), uv2(0,1,0) {
+
+        }
 
     triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr,
              const vec3& uv0, const vec3& uv1, const vec3& uv2)
@@ -63,6 +65,20 @@ class triangle : public hittable {
         }
 
         return true;
+    }
+
+    aabb bounding_box() const override {
+        point3 min = point3(
+            std::min({v0.x(), v1.x(), v2.x()}),
+            std::min({v0.y(), v1.y(), v2.y()}),
+            std::min({v0.z(), v1.z(), v2.z()})
+        );
+        point3 max = point3(
+            std::max({v0.x(), v1.x(), v2.x()}),
+            std::max({v0.y(), v1.y(), v2.y()}),
+            std::max({v0.z(), v1.z(), v2.z()})
+        );
+        return aabb(min, max);
     }
 
   private:

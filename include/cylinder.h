@@ -175,6 +175,35 @@ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
 
         return true;
     }
+
+aabb bounding_box() const override {
+    // Half-axis vector scaled to half the cylinder height
+    vec3 half_axis = (height / 2) * axis;
+
+    // Calculate the top and bottom centers of the cylinder
+    point3 top_center = center + half_axis;
+    point3 bottom_center = center - half_axis;
+
+    // A radius vector orthogonal to the cylinder's axis
+    vec3 radius_vector = radius * vec3(1, 1, 1); // Uniform scaling in all directions
+
+    // Adjust bounding box to cover the maximum extents
+    // The bounding box must encompass the radius at all points
+    point3 min_point = point3(
+        std::fmin(top_center.x() - radius, bottom_center.x() - radius),
+        std::fmin(top_center.y() - radius, bottom_center.y() - radius),
+        std::fmin(top_center.z() - radius, bottom_center.z() - radius)
+    );
+
+    point3 max_point = point3(
+        std::fmax(top_center.x() + radius, bottom_center.x() + radius),
+        std::fmax(top_center.y() + radius, bottom_center.y() + radius),
+        std::fmax(top_center.z() + radius, bottom_center.z() + radius)
+    );
+
+    return aabb(min_point, max_point);
+}
+
 };
 
 #endif
