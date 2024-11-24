@@ -7,7 +7,13 @@
 class triangle : public hittable {
   public:
     triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr)
-        : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr) {}
+        : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
+        uv0(vec3(0,0,0)), uv1(1,0,0), uv2(0,1,0) {}
+
+    triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr,
+             const vec3& uv0, const vec3& uv1, const vec3& uv2)
+        : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
+        uv0(uv0), uv1(uv1), uv2(uv2) {}
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         // Using the Möller–Trumbore algorithm for ray-triangle intersection
@@ -50,12 +56,19 @@ class triangle : public hittable {
         // Set the material pointer in hit_record
         rec.mat_ptr = mat_ptr;
 
+        if (mat_ptr->has_texture) {
+            // Interpolate UV coordinates using barycentric coordinates
+            rec.u = (1 - u - v) * uv0.x() + u * uv1.x() + v * uv2.x();
+            rec.v = (1 - u - v) * uv0.y() + u * uv1.y() + v * uv2.y();
+        }
+
         return true;
     }
 
   private:
     point3 v0, v1, v2; // Triangle vertices
     material* mat_ptr;
+    vec3 uv0, uv1, uv2; // UV coordinates for texture mapping, ignore z componenet
 };
 
 #endif

@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include <vector>
+#include <chrono>
 #include "camera.h"
 // #include "hittable.h"
 #include "hittable_list.h"
@@ -96,6 +97,15 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
         mat->reflectivity = mat_data["reflectivity"];   
         mat->is_refractive = mat_data["isrefractive"];
         mat->refractiveindex = mat_data["refractiveindex"];
+        if (mat_data.contains("texture")) {
+            mat->load_texture(mat_data["texture"]);
+            if (mat_data.contains("tile_factor_u")) {
+                mat->tile_factor_u = mat_data["tile_factor_u"];
+            if (mat_data.contains("tile_factor_v")) {
+                mat->tile_factor_v = mat_data["tile_factor_v"];
+                }
+            }
+        }
 
         if (type == "sphere") {
             world.add(make_shared<sphere>(
@@ -112,12 +122,26 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
                 mat
             ));
         } else if (type == "triangle") {
-            world.add(make_shared<triangle>(
-                point3(shape_data["v0"][0], shape_data["v0"][1], shape_data["v0"][2]),
-                point3(shape_data["v1"][0], shape_data["v1"][1], shape_data["v1"][2]),
-                point3(shape_data["v2"][0], shape_data["v2"][1], shape_data["v2"][2]),
-                mat
-            ));
+            // customized uv mapping
+            if (mat_data.contains("uv0") && mat_data.contains("uv1") && mat_data.contains("uv2")) {
+                vec3 uv0 = vec3(mat_data["uv0"][0], mat_data["uv0"][1], 0.0);
+                vec3 uv1 = vec3(mat_data["uv1"][0], mat_data["uv1"][1], 0.0);
+                vec3 uv2 = vec3(mat_data["uv2"][0], mat_data["uv2"][1], 0.0);
+                world.add(make_shared<triangle>(
+                    point3(shape_data["v0"][0], shape_data["v0"][1], shape_data["v0"][2]),
+                    point3(shape_data["v1"][0], shape_data["v1"][1], shape_data["v1"][2]),
+                    point3(shape_data["v2"][0], shape_data["v2"][1], shape_data["v2"][2]),
+                    mat,
+                    uv0, uv1, uv2
+                ));
+            } else {
+                world.add(make_shared<triangle>(
+                    point3(shape_data["v0"][0], shape_data["v0"][1], shape_data["v0"][2]),
+                    point3(shape_data["v1"][0], shape_data["v1"][1], shape_data["v1"][2]),
+                    point3(shape_data["v2"][0], shape_data["v2"][1], shape_data["v2"][2]),
+                    mat
+                )); 
+            }
         }
     }
 }
@@ -126,10 +150,10 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
 int main() {
     // Load JSON file
     std::string inputDir = "/home/jin/cgr/rt/data/jsons/";
-    std::string jsonName = "scene";
+    std::string jsonName = "texture_test";
     std::string extension = ".ppm";
     std::ifstream input_file(inputDir+jsonName+".json");
-    int output_id = 9;
+    int output_id = 3;
     if (!input_file) {
         std::cerr << "Error: Could not open the JSON file." << std::endl;
         return 1;
@@ -148,10 +172,20 @@ int main() {
 
     cam.filename = jsonName + std::to_string(output_id) + extension;
 
-    // cam.render_binary(world);
+    // Start timing
+    auto start = std::chrono::high_resolution_clock::now();
 
+    // cam.render_binary(world);
     cam.render(world, lights);
 
+    // End timing
+    auto end = std::chrono::high_resolution_clock::now();
+    // Calculate elapsed time
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    // Print runtime to terminal
+    // Convert to seconds and print with 2 decimal places
+    std::cout << std::fixed << std::setprecision(2);
+    std::cout << "Rendering completed in " << duration / 1000.0 << " seconds." << std::endl;
 
     return 0;
 }

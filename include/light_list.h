@@ -34,14 +34,14 @@ class light_list : public light {
             const point3& p, 
             const vec3& normal, 
             const vec3& view_dir, 
-            const material& mat, 
+            const hit_record& rec,
             const hittable& world
         ) const override {
 
             color result(0, 0, 0);
 
             for (const auto& l : lights) {
-                result += l->compute_lighting(p, normal, view_dir, mat, world);
+                result += l->compute_lighting(p, normal, view_dir, rec, world);
             }
 
             return result;

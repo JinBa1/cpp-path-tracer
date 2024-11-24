@@ -14,7 +14,7 @@ class light {
         const point3& p,
         const vec3& normal,
         const vec3& view_dir,
-        const material& mat,
+        const hit_record& rec,
         const hittable& world
      ) const = 0;
 

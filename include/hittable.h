@@ -12,6 +12,8 @@ class hit_record {
     double t;
     bool front_face;
 
+    double u, v; // UV coordinates for texture mapping
+
     material* mat_ptr; // Pointer to the material of the object
 
     void set_face_normal(const ray& r, const vec3& outward_normal) {

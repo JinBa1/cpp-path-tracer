@@ -175,7 +175,7 @@ color ray_color_phong(const ray& r, const hittable& world, const light& lights, 
 
     // Compute Blinn-Phong shading at the intersection point
     vec3 view_dir = unit_vector(-r.direction());
-    color local_shading = lights.compute_lighting(rec.p, rec.normal, view_dir, *rec.mat_ptr, world);
+    color local_shading = lights.compute_lighting(rec.p, rec.normal, view_dir, rec, world);
 
     // Add ambient light contribution
     color ambient = rec.mat_ptr->ka * rec.mat_ptr->ambientcolor * ambient_light;
@@ -247,141 +247,9 @@ color ray_color_phong(const ray& r, const hittable& world, const light& lights, 
     return result;
 }
 
-// HANDLE 4 CASES, FIXED CONTRIBUTION OF LOCAL SHADING IN REFRACTION ONLY CASE
-// color ray_color_phong(const ray& r, const hittable& world, const light& lights, int depth) const {
-//     hit_record rec;
-//     color result;
-
-//     // If the ray hits nothing, return the background color.
-//     if (!world.hit(r, interval(0.001, infinity), rec)) {
-//         return background;
-//     }
-
-//     // Compute Blinn-Phong shading at the intersection point
-//     vec3 view_dir = unit_vector(-r.direction());
-//     color local_shading = lights.compute_lighting(rec.p, rec.normal, view_dir, *rec.mat_ptr, world);
-
-//     // Add ambient light contribution
-//     color ambient = rec.mat_ptr->ka * rec.mat_ptr->ambientcolor * ambient_light;
-
-//     // Stop recursion if max depth is reached
-//     if (depth <= 0) {
-//         return ambient + local_shading;
-//     }
-
-//     // Initialize reflection and refraction contributions
-//     color reflected_color(0, 0, 0);
-//     color refracted_color(0, 0, 0);
-
-//     // Handle reflection if the material is reflective
-//     if (rec.mat_ptr->is_reflective) {
-//         vec3 reflect_dir = unit_vector(r.direction() - 2 * dot(r.direction(), rec.normal) * rec.normal);
-//         ray reflect_ray(rec.p + 0.001 * reflect_dir, reflect_dir);
-//         reflected_color = ray_color_phong(reflect_ray, world, lights, depth - 1);
-//     }
-
-//     // Handle refraction if the material is refractive
-//     if (rec.mat_ptr->is_refractive) {
-//         double eta = rec.front_face ? (1.0 / rec.mat_ptr->refractiveindex) : rec.mat_ptr->refractiveindex;
-
-//         // Calculate cos(theta) for the incident ray
-//         double cos_theta_i = std::fabs(dot(-unit_vector(r.direction()), rec.normal));
-//         double sin_theta_t = eta * std::sqrt(1 - cos_theta_i * cos_theta_i);
-
-//         if (sin_theta_t > 1.0) {
-//             // Total Internal Reflection: Treat as reflective
-//             vec3 reflect_dir = unit_vector(r.direction() - 2 * dot(r.direction(), rec.normal) * rec.normal);
-//             ray reflect_ray(rec.p + 0.001 * reflect_dir, reflect_dir);
-//             refracted_color = ray_color_phong(reflect_ray, world, lights, depth - 1); // Reflect ray in TIR
-//         } else {
-//             // Compute refraction direction using Snell's law
-//             vec3 refract_dir = refract(unit_vector(r.direction()), rec.normal, eta);
-//             ray refract_ray(rec.p + 0.001 * refract_dir, refract_dir);
-//             refracted_color = ray_color_phong(refract_ray, world, lights, depth - 1);
-//         }
-//     }
-
-//     // Combine contributions based on the material properties
-//     if (rec.mat_ptr->is_reflective && rec.mat_ptr->is_refractive) {
-//         // Use Schlick approximation for Fresnel effect
-//         double R0 = pow((1.0 - rec.mat_ptr->refractiveindex) / (1.0 + rec.mat_ptr->refractiveindex), 2);
-//         double cos_theta = std::fabs(dot(-unit_vector(r.direction()), rec.normal));
-//         double fresnel_reflectance = R0 + (1 - R0) * pow(1 - cos_theta, 5);
-//         double fresnel_transmittance = 1 - fresnel_reflectance;
-
-//         // Normalize contributions to ensure total weight is 1
-//         double local_weight = std::max(0.0, 1 - fresnel_reflectance - fresnel_transmittance);
-
-//         result = local_weight * (ambient + local_shading) +
-//                  fresnel_reflectance * reflected_color +
-//                  fresnel_transmittance * refracted_color;
-//     } else if (rec.mat_ptr->is_reflective) {
-//         // Reflective only
-//         result = ambient + (1 - rec.mat_ptr->reflectivity) * local_shading +
-//                  rec.mat_ptr->reflectivity * reflected_color;
-//     } else if (rec.mat_ptr->is_refractive) {
-//         // Refractive only
-//         double surface_weight = 0.1; // Small contribution from local shading
-//         double refraction_weight = 1.0 - surface_weight;
-
-//         result = surface_weight * (ambient + local_shading) +
-//                 refraction_weight * refracted_color;
-//     } else {
-//         // Non-reflective, non-refractive (pure Blinn-Phong shading)
-//         result = ambient + local_shading;
-//     }
-
-//     return result;
-// }
-
-// //REFLECTION ADDED
-// color ray_color_phong(const ray& r, const hittable& world, const light& lights, int depth) const {
-//     hit_record rec;
-//     color result; // Variable to store the final result
-
-//     // If the ray hits nothing, return the background color.
-//     if (!world.hit(r, interval(0.001, infinity), rec)) {
-//         result = background;
-//     } else {
-//         // Compute Blinn-Phong shading at the intersection point
-//         vec3 view_dir = unit_vector(-r.direction());
-//         color local_shading = lights.compute_lighting(rec.p, rec.normal, view_dir, *rec.mat_ptr, world);
-//         // Add ambient light contribution
-//         color ambient = rec.mat_ptr->ka * rec.mat_ptr->ambientcolor * ambient_light;
-//         // Stop recursion if max depth is reached or material is not reflective
-//         if (depth <= 0 || !rec.mat_ptr->is_reflective) {
-//             result = ambient + local_shading;
-//         } else {
-//             // Compute reflection ray
-//             vec3 reflect_dir = unit_vector(r.direction() - 2 * dot(r.direction(), rec.normal) * rec.normal);
-//             ray reflect_ray(rec.p + 0.001 * reflect_dir, reflect_dir); // Offset to avoid self-intersection
-//             // Trace the reflection ray
-//             color reflected_color = ray_color_phong(reflect_ray, world, lights, depth - 1);
-//             // Combine local shading and reflected color
-//             result = ambient + (1 - rec.mat_ptr->reflectivity) * local_shading + rec.mat_ptr->reflectivity * reflected_color;
-//         }
-//     }
-
-//     return result; // Return the final computed color
-// }
 
 
 
-    // SHADOW ADDED
-    // color ray_color_phong(const ray& r, const hittable& world, const light& lights) const {
-    //     hit_record rec;
-
-    //     // If the ray hits nothing, return the background color.
-    //     if (!world.hit(r, interval(0.001, infinity), rec)) {
-    //         return background;
-    //     }
-
-    //     // Compute Blinn-Phong shading at the intersection point
-    //     vec3 view_dir = unit_vector(-r.direction());
-    //     color local_shading = lights.compute_lighting(rec.p, rec.normal, view_dir, *rec.mat_ptr);
-
-    //     return local_shading;
-    // }
 };
 
 #endif

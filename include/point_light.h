@@ -21,18 +21,26 @@ class point_light : public light {
             const point3& p,
             const vec3& normal,
             const vec3& view_dir,
-            const material& mat,
+            const hit_record& rec,
             const hittable& world
         ) const override {
+                material mat = *rec.mat_ptr;
+
                 vec3 light_dir;
                 color light_intensity = intensity_at(p, light_dir);
 
                 // Shadow factor (0 for fully shadowed, 1 for fully lit)
                 double shadow = shadow_factor(p, world);
 
+                // Sample texture color (if any) for diffuse and ambient contributions
+                color texture_color = mat.diffusecolor; // Default to diffusecolor
+                if (mat.has_texture) {
+                    texture_color = mat.get_texture_color(rec.u, rec.v); // Use texture color
+                }
+
                 // Diffuse contribution
                 double diff = std::max(0.0, dot(normal, light_dir));
-                color diffuse = shadow * mat.kd * mat.diffusecolor * light_intensity * diff;
+                color diffuse = shadow * mat.kd * texture_color * light_intensity * diff;
 
                 // Specular contribution
                 vec3 halfway = unit_vector(light_dir + view_dir);

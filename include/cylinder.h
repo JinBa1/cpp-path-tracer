@@ -83,6 +83,38 @@ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         // Update the material in the hit record
         rec.mat_ptr = mat_ptr;
 
+        if (mat_ptr->has_texture) {
+            // double theta = std::atan2(outward_normal.z(), outward_normal.x());
+            // rec.u = 0.5 + theta / (2 * M_PI);
+            // rec.v = 0.5 + axis_proj / height; // Map height proportionally to [0, 1]
+            // Compute base UV coordinates
+            double theta = std::atan2(outward_normal.z(), outward_normal.x());
+            double base_u = 0.5 + theta / (2 * M_PI);  // Map to [0, 1]
+            double base_v = 0.5 + axis_proj / height;  // Map height proportionally to [0, 1]
+
+            // Dynamic scaling based on texture aspect ratio
+            double ideal_aspect_ratio = (2.0 * M_PI * radius) / height;
+            double texture_aspect_ratio = static_cast<double>(mat_ptr->texture_width) / mat_ptr->texture_height;
+
+            double scale_factor_u = 1.0;
+            double scale_factor_v = 1.0;
+
+            if (texture_aspect_ratio > ideal_aspect_ratio) {
+                scale_factor_v = texture_aspect_ratio / ideal_aspect_ratio;
+            } else if (texture_aspect_ratio < ideal_aspect_ratio) {
+                scale_factor_u = ideal_aspect_ratio / texture_aspect_ratio;
+            }
+
+            // Apply scaling and tiling
+
+            double tiled_u = fmod(base_u * mat_ptr->tile_factor_u * scale_factor_u, 1.0);
+            double tiled_v = fmod(base_v * mat_ptr->tile_factor_v * scale_factor_v, 1.0);
+
+            // Ensure UV values are in the range [0, 1]
+          rec.u = tiled_u >= 0 ? tiled_u : tiled_u + 1;
+          rec.v = tiled_v >= 0 ? tiled_v : tiled_v + 1;
+        }
+
         return true;
     }
 
@@ -119,6 +151,27 @@ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
 
         // Assign the material pointer
         rec.mat_ptr = mat_ptr;
+
+        // Compute UV for disk caps
+        if (mat_ptr->has_texture) {
+            // vec3 p_local = rec.p - disk_center; // Point relative to the disk center
+            // rec.u = 0.5 + p_local.x() / (2 * radius);
+            // rec.v = 0.5 + p_local.z() / (2 * radius);
+            vec3 p_local = rec.p - disk_center; // Point relative to the disk center
+
+            // Compute base UV coordinates
+            double base_u = 0.5 + p_local.x() / (2 * radius);
+            double base_v = 0.5 + p_local.z() / (2 * radius);
+
+
+
+            double tiled_u = fmod(base_u * mat_ptr->tile_factor_u, 1.0);
+            double tiled_v = fmod(base_v * mat_ptr->tile_factor_v, 1.0);
+
+            // Ensure UV values are in the range [0, 1]
+            rec.u = tiled_u >= 0 ? tiled_u : tiled_u + 1;
+            rec.v = tiled_v >= 0 ? tiled_v : tiled_v + 1;
+        }
 
         return true;
     }
