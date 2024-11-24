@@ -32,8 +32,8 @@ class camera {
     int samples_per_pixel = 10; // Number of samples per pixel
 
     //Defocus blur
-    double defocus_angle = 0.0;       // Angle of the defocus disk
-    double focus_dist    = 10.0;     // Distance to the plane of focus
+    double aperture = 0.1;  // Diameter of the lens aperture
+    double focus_dist = 10.0;  // Distance from the camera to the focal plane
 
 
     // Tone mapping selector
@@ -127,6 +127,9 @@ class camera {
         u = unit_vector(cross(vup, w));
         v = cross(w, u);
 
+        defocus_disk_u = u;
+        defocus_disk_v = v;
+
         // Calculate the vectors across the horizontal and down the vertical viewport edges.
         vec3 viewport_u = viewport_width * u;    // Vector across viewport horizontal edge
         vec3 viewport_v = viewport_height * -v;  // Vector down viewport vertical edge
@@ -142,18 +145,31 @@ class camera {
 
     // ANTI-ALIASING
     ray get_sampled_ray(int i, int j) const {
-        // Generate a random offset within the [-0.5, +0.5] range
-        vec3 offset = sample_square();
+        // // Generate a random offset within the [-0.5, +0.5] range
+        // vec3 offset = sample_square();
 
-        // Compute the sampled pixel position
+        // // Compute the sampled pixel position
+        // vec3 pixel_sample = pixel00_loc
+        //                 + ((i + offset.x()) * pixel_delta_u)
+        //                 + ((j + offset.y()) * pixel_delta_v);
+
+        // vec3 ray_origin = center;
+        // vec3 ray_direction = pixel_sample - ray_origin;
+
+        // return ray(ray_origin, ray_direction);
+        vec3 offset = sample_square();
+        vec3 lens_sample = random_point_in_aperture();
+
+        vec3 offset_origin = center + lens_sample;
+
         vec3 pixel_sample = pixel00_loc
                         + ((i + offset.x()) * pixel_delta_u)
                         + ((j + offset.y()) * pixel_delta_v);
 
-        vec3 ray_origin = center;
-        vec3 ray_direction = pixel_sample - ray_origin;
+        vec3 focal_target = center + focus_dist * unit_vector(pixel_sample - center);
+        vec3 ray_direction = focal_target - offset_origin;
 
-        return ray(ray_origin, ray_direction);
+        return ray(offset_origin, ray_direction);
     }
 
     vec3 sample_square() const {
@@ -161,6 +177,17 @@ class camera {
         return vec3(random_double() - 0.5, random_double() - 0.5, 0);
     } // END ANTI-ALIASING
 
+vec3 random_point_in_aperture() const {
+    vec3 point = random_in_unit_disk() * (aperture / 2.0);
+    return point.x() * defocus_disk_u + point.y() * defocus_disk_v;
+}
+
+vec3 random_in_unit_disk() const {
+    while (true) {
+        auto p = vec3(random_double(-1, 1), random_double(-1, 1), 0);
+        if (p.length_squared() < 1) return p;
+    }
+}
 
     // HANDLE 3 CASE, USE APPROXIMATION AS LONG AS IS REFRATIVE
     color ray_color_phong(const ray& r, const hittable& world, const light& lights, int depth) const {
