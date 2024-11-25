@@ -28,6 +28,7 @@ class material {
         bool is_refractive = false; // Refractive material
         float refractiveindex = 1.0; // Refractivity coefficient
 
+        // TEXTURE MAPPING
         bool has_texture = false ; // flag for texture mapping
         // std::vector<color> texture_data; // texture pixel data
         std::vector<uint8_t> texture_data; // Compact texture data (R, G, B as uint8_t)
@@ -36,18 +37,14 @@ class material {
         float tile_factor_u = 1.0; // tiling factor for U coordinate
         float tile_factor_v = 1.0; // tiling factor for V coordinate
 
+        // MICROFACET BRDF
+        bool is_microfacet = false;
+        float roughness = 0.5; // Roughness for NDF
+        float metalness = 0.0; // 0 for dielectric, 1 for metal
+        color base_color = color(0.8, 0.8, 0.8); // Base color for non-metals
+        color F0 = color(0.04, 0.04, 0.04); // Fresnel reflectance at normal incidence
 
-        //// Function to get color from texture
-        // color get_texture_color(double u, double v) const {
-        //     if (!has_texture) return diffusecolor; // Default diffuse color
 
-        //     // Map (u, v) to texture pixel indices
-        //     int i = clamp(static_cast<int>(u * texture_width), 0, texture_width - 1);
-        //     int j = clamp(static_cast<int>(v * texture_height), 0, texture_height - 1);
-
-        //     // Return texture color at (i, j)
-        //     return texture_data[j * texture_width + i];
-        // }
 
         color get_texture_color(double u, double v) const {
             if (!has_texture) return diffusecolor; // Return default color if no texture
@@ -67,30 +64,6 @@ class material {
             return color(r, g, b);
         }
 
-        // void load_texture(const std::string& filename) {
-        //     std::ifstream file(filename);
-        //     if (!file) {
-        //         std::cerr << "Failed to open texture file: " << filename << std::endl;
-        //         return;
-        //     }
-
-        //     std::string header;
-        //     int max_val;
-        //     file >> header >> texture_width >> texture_height >> max_val;
-
-        //     texture_data.resize(texture_width * texture_height);
-
-        //     for (int j = 0; j < texture_height; j++) {
-        //         for (int i = 0; i < texture_width; i++) {
-        //             int r, g, b;
-        //             file >> r >> g >> b;
-        //             texture_data[j * texture_width + i] = color(r / 255.0, g / 255.0, b / 255.0);
-        //         }
-        //     }
-
-        //     has_texture = true; // ensure its true
-        //     std::cout << "Texture loaded: " << filename << std::endl;
-        // } 
 
         void load_texture(const std::string& filename) {
             std::ifstream file(filename);
@@ -131,6 +104,50 @@ class material {
                       << " (" << texture_width << "x" << texture_height << ")" << std::endl;
         }
 
+        void print_material() const {
+            std::cout << "Material:" << std::endl;
+            std::cout << "  Diffuse Color: [" << diffusecolor.x() << ", " << diffusecolor.y() << ", " << diffusecolor.z() << "]" << std::endl;
+            std::cout << "  Specular Color: [" << specularcolor.x() << ", " << specularcolor.y() << ", " << specularcolor.z() << "]" << std::endl;
+            std::cout << "  Reflectivity: " << reflectivity << std::endl;
+            std::cout << "  Refractive Index: " << refractiveindex << std::endl;
+            std::cout << "  Is Reflective: " << is_reflective << std::endl;
+            std::cout << "  Is Refractive: " << is_refractive << std::endl;
+            std::cout << "  Is Microfacet: " << is_microfacet << std::endl;
+            if (is_microfacet) {
+                std::cout << "    Roughness: " << roughness << std::endl;
+                std::cout << "    Metalness: " << metalness << std::endl;
+                std::cout << "    F0: [" << F0.x() << ", " << F0.y() << ", " << F0.z() << "]" << std::endl;
+                std::cout << "    Base Color: [" << base_color.x() << ", " << base_color.y() << ", " << base_color.z() << "]" << std::endl;
+            }
+            if (has_texture) {
+                std::cout << "  Has Texture: Yes (Size: " << texture_width << "x" << texture_height << ")" << std::endl;
+            } else {
+                std::cout << "  Has Texture: No" << std::endl;
+            }
+        }        
+
 };
+
+inline double GGX_D(const vec3& h, const vec3& n, float roughness) {
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+    float NdotH = std::max(dot(n, h), 0.0);
+    float denom = (NdotH * NdotH * (alpha2 - 1) + 1);
+    return alpha2 / (M_PI * denom * denom);
+}
+
+inline color fresnel_schlick(double cosTheta, const color& F0) {
+    return F0 + (color(1.0, 1.0, 1.0) - F0) * pow(1.0 - cosTheta, 5);
+}
+
+inline double smith_G1(const vec3& v, const vec3& n, float roughness) {
+    float NdotV = std::max(dot(n, v), 0.0);
+    float k = (roughness + 1) * (roughness + 1) / 8.0;
+    return NdotV / (NdotV * (1 - k) + k);
+}
+
+inline double smith_G(const vec3& wi, const vec3& wo, const vec3& n, float roughness) {
+    return smith_G1(wi, n, roughness) * smith_G1(wo, n, roughness);
+}
 
 #endif // MATERIAL_H

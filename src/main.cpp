@@ -12,6 +12,7 @@
 #include "triangle.h"
 #include "light.h"
 #include "point_light.h"
+#include "area_light.h"
 #include "light_list.h"
 
 #include "json.hpp"
@@ -41,6 +42,15 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
                 point3(light_data["position"][0], light_data["position"][1], light_data["position"][2]),
                 color(light_data["intensity"][0], light_data["intensity"][1], light_data["intensity"][2])
             ));
+        }  else if (type == "arealight") {
+            lights.add(make_shared<area_light>(
+                point3(light_data["position"][0], light_data["position"][1], light_data["position"][2]),
+                vec3(light_data["u"][0], light_data["u"][1], light_data["u"][2]),
+                vec3(light_data["v"][0], light_data["v"][1], light_data["v"][2]),
+                light_data["width"],
+                light_data["height"],
+                color(light_data["intensity"][0], light_data["intensity"][1], light_data["intensity"][2])
+            ));
         }
     }
 
@@ -66,6 +76,21 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
                 mat->tile_factor_u = mat_data["tile_factor_u"];
             if (mat_data.contains("tile_factor_v")) {
                 mat->tile_factor_v = mat_data["tile_factor_v"];
+                }
+            }
+        }
+
+        if (mat_data.contains("is_microfacet")) {
+            mat->is_microfacet = mat_data["is_microfacet"];
+
+            if (mat->is_microfacet) {
+                mat->base_color = color(mat_data["base_color"][0], mat_data["base_color"][1], mat_data["base_color"][2]);
+                mat->roughness = mat_data["roughness"];
+                mat->metalness = mat_data["metalness"];
+                if (mat_data.contains("F0")) {
+                    mat->F0 = color(mat_data["F0"][0], mat_data["F0"][1], mat_data["F0"][2]);
+                } else {
+                    mat->F0 = color(0.04, 0.04, 0.04); // default for non-metals
                 }
             }
         }
@@ -117,6 +142,7 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
                 )); 
             }
         }
+        mat->print_material(); // Print material properties
     }
 }
 
@@ -124,10 +150,10 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
 int main() {
     // Load JSON file
     std::string inputDir = "/home/jin/cgr/rt/data/jsons/";
-    std::string jsonName = "scene";
+    std::string jsonName = "area";
     std::string extension = ".ppm";
     std::ifstream input_file(inputDir+jsonName+".json");
-    int output_id = 25;
+    int output_id = 1;
     if (!input_file) {
         std::cerr << "Error: Could not open the JSON file." << std::endl;
         return 1;
@@ -152,7 +178,7 @@ int main() {
 
 
     // // Build the BVH
-    world.build();
+    // world.build();
     // Start timing
     auto start = std::chrono::high_resolution_clock::now();
 
