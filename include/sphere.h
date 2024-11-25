@@ -6,10 +6,15 @@
 
 class sphere : public hittable {
   public:
+
+    mutable int hit_call_count = 0;
+
     sphere(const point3& center, double radius, material* mat_ptr)
      : center(center), radius(std::fmax(0,radius)), mat_ptr(mat_ptr) {}
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        ++hit_call_count;
+
         vec3 oc = center - r.origin();
         auto a = r.direction().length_squared();
         auto h = dot(r.direction(), oc);

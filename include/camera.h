@@ -199,6 +199,8 @@ vec3 random_in_unit_disk() const {
             return background;
         }
 
+        // return color(1, 0, 0);
+
         // Compute Blinn-Phong shading at the intersection point
         vec3 view_dir = unit_vector(-r.direction());
         color local_shading = lights.compute_lighting(rec.p, rec.normal, view_dir, rec, world);

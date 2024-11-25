@@ -18,43 +18,6 @@
 
 using json = nlohmann::json;
 
-// void parse_scene_binary(const json& scene_data, hittable_list& world, camera& cam) {
-//     // Parse camera
-//     auto camera_data = scene_data["camera"];
-//     cam.image_width = camera_data["width"];
-//     cam.image_height = camera_data["height"];
-//     cam.lookfrom = point3(camera_data["position"][0], camera_data["position"][1], camera_data["position"][2]);
-//     cam.lookat = point3(camera_data["lookAt"][0], camera_data["lookAt"][1], camera_data["lookAt"][2]);
-//     cam.vup = vec3(camera_data["upVector"][0], camera_data["upVector"][1], camera_data["upVector"][2]);
-//     cam.vfov = camera_data["fov"];
-//     cam.background = color(scene_data["scene"]["backgroundcolor"][0],
-//                            scene_data["scene"]["backgroundcolor"][1],
-//                            scene_data["scene"]["backgroundcolor"][2]);
-
-//     // Parse shapes
-//     for (const auto& shape : scene_data["scene"]["shapes"]) {
-//         std::string type = shape["type"];
-//         if (type == "sphere") {
-//             world.add(make_shared<sphere>(
-//                 point3(shape["center"][0], shape["center"][1], shape["center"][2]),
-//                 shape["radius"]
-//             ));
-//         } else if (type == "cylinder") {
-//             world.add(make_shared<cylinder>(
-//                 point3(shape["center"][0], shape["center"][1], shape["center"][2]),
-//                 vec3(shape["axis"][0], shape["axis"][1], shape["axis"][2]),
-//                 shape["radius"],
-//                 shape["height"]
-//             ));
-//         } else if (type == "triangle") {
-//             world.add(make_shared<triangle>(
-//                 point3(shape["v0"][0], shape["v0"][1], shape["v0"][2]),
-//                 point3(shape["v1"][0], shape["v1"][1], shape["v1"][2]),
-//                 point3(shape["v2"][0], shape["v2"][1], shape["v2"][2])
-//             ));
-//         }
-//     }
-// }
 
 void parse_scene(const json& scene_data, hittable_list& world, light_list& lights, camera& cam) {
     // Parse camera
@@ -153,7 +116,7 @@ int main() {
     std::string jsonName = "scene";
     std::string extension = ".ppm";
     std::ifstream input_file(inputDir+jsonName+".json");
-    int output_id = 24;
+    int output_id = 25;
     if (!input_file) {
         std::cerr << "Error: Could not open the JSON file." << std::endl;
         return 1;
@@ -176,11 +139,13 @@ int main() {
     cam.aperture = 0.02;
     cam.focus_dist = 1.5;
 
+
+    // // Build the BVH
+    world.build();
     // Start timing
     auto start = std::chrono::high_resolution_clock::now();
 
-    // // Build the BVH
-    // world.build();
+
 
     // cam.render_binary(world);
     cam.render(world, lights);
@@ -193,6 +158,8 @@ int main() {
     // Convert to seconds and print with 2 decimal places
     std::cout << std::fixed << std::setprecision(2);
     std::cout << "Rendering completed in " << duration / 1000.0 << " seconds." << std::endl;
+
+    world.log_hit_counts();
 
     return 0;
 }

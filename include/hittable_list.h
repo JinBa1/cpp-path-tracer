@@ -25,6 +25,8 @@ class hittable_list : public hittable {
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override;
     aabb bounding_box() const override;
+
+    void log_hit_counts() const;
 };
 
 #endif

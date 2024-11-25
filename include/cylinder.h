@@ -5,11 +5,17 @@
 #include "hittable.h"
 
 class cylinder : public hittable {
+
   public:
+
+  mutable int hit_call_count = 0;
     cylinder(const point3& center, const vec3& axis, double radius, double height, material* mat_ptr)
         : center(center), axis(unit_vector(axis)), radius(std::fmax(0, radius)), height(std::fmax(0, height)), mat_ptr(mat_ptr) {}
 
 bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+
+    ++hit_call_count;
+
     hit_record temp_rec;
     bool hit_anything = false;
     auto closest_so_far = ray_t.max;

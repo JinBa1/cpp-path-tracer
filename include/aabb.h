@@ -62,6 +62,13 @@ class aabb {
         return true;
     }
 
+    double surface_area() const {
+        double dx = x.size();
+        double dy = y.size();
+        double dz = z.size();
+        return 2.0 * (dx * dy + dy * dz + dz * dx);
+    }
+
     private:
         void pad_to_minimums() {
             // Adjust the AABB so that no side is narrower than some delta, padding if necessary.

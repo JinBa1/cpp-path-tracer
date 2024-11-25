@@ -6,6 +6,9 @@
 
 class triangle : public hittable {
   public:
+
+mutable int hit_call_count = 0;
+
     triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr)
         : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
         uv0(vec3(0,0,0)), uv1(1,0,0), uv2(0,1,0) {
@@ -18,6 +21,8 @@ class triangle : public hittable {
         uv0(uv0), uv1(uv1), uv2(uv2) {}
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        ++hit_call_count;
+
         // Using the Möller–Trumbore algorithm for ray-triangle intersection
         const vec3 edge1 = v1 - v0;
         const vec3 edge2 = v2 - v0;
