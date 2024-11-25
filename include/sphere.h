@@ -9,8 +9,13 @@ class sphere : public hittable {
 
     mutable int hit_call_count = 0;
 
-    sphere(const point3& center, double radius, material* mat_ptr)
-     : center(center), radius(std::fmax(0,radius)), mat_ptr(mat_ptr) {}
+    // sphere(const point3& center, double radius, material* mat_ptr)
+    //  : center(center), radius(std::fmax(0,radius)), mat_ptr(mat_ptr), excluded(false) {}
+
+    sphere(const point3& center, double radius, material* mat_ptr, bool exclude_from_bvh = false)
+     : center(center), radius(std::fmax(0,radius)), mat_ptr(mat_ptr), excluded(exclude_from_bvh) {}
+
+    bool exclude_from_bvh() const override { return excluded; }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         ++hit_call_count;
@@ -81,6 +86,8 @@ class sphere : public hittable {
     point3 center;
     double radius;
     material* mat_ptr;
+
+    bool excluded;
 };
 
 #endif

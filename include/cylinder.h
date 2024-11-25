@@ -9,8 +9,11 @@ class cylinder : public hittable {
   public:
 
   mutable int hit_call_count = 0;
-    cylinder(const point3& center, const vec3& axis, double radius, double height, material* mat_ptr)
-        : center(center), axis(unit_vector(axis)), radius(std::fmax(0, radius)), height(std::fmax(0, height)), mat_ptr(mat_ptr) {}
+    cylinder(const point3& center, const vec3& axis, double radius, double height, material* mat_ptr, bool exclude_from_bvh = false)
+        : center(center), axis(unit_vector(axis)), radius(std::fmax(0, radius)),
+         height(std::fmax(0, height)), mat_ptr(mat_ptr), excluded(exclude_from_bvh) {}
+
+    bool exclude_from_bvh() const override { return excluded; }
 
 bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
 
@@ -44,6 +47,8 @@ bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
     double radius;  // Radius of the cylinder
     double height;  // Total height of the cylinder
     material* mat_ptr;
+
+    bool excluded;
 
     // Check intersection with the cylinder's side surface
     bool hit_cylinder_side(const ray& r, interval ray_t, hit_record& rec) const {

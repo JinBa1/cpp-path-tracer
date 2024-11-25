@@ -131,20 +131,29 @@ class bvh_node : public hittable {
     }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
+        // if (!bbox.hit(r, ray_t)) {
+        //     return false; }
+        // // visualizing
+        // // rec.t = ray_t.min; // Set a dummy hit record
+        // // rec.p = r.at(ray_t.min);
+        // // rec.normal = vec3(1, 0, 0); // Arbitrary normal
+        // // rec.mat_ptr = nullptr; // No material for bounding box visualization
+        // // return true;
+        // bool hit_left = left->hit(r, ray_t, rec);
+        // bool hit_right = right->hit(r, interval(ray_t.min, hit_left ? rec.t : ray_t.max), rec);
+        // return hit_left || hit_right;
+
+
+        // Check if the ray intersects the bounding box of this node
         if (!bbox.hit(r, ray_t)) {
-            return false; }
+            return false;
+        }
 
-        // visualizing
-        // rec.t = ray_t.min; // Set a dummy hit record
-        // rec.p = r.at(ray_t.min);
-        // rec.normal = vec3(1, 0, 0); // Arbitrary normal
-        // rec.mat_ptr = nullptr; // No material for bounding box visualization
-        // return true;
+        // Traverse child nodes
+        bool hit_left = left && left->hit(r, ray_t, rec);
+        bool hit_right = right && right->hit(r, interval(ray_t.min, hit_left ? rec.t : ray_t.max), rec);
 
-        bool hit_left = left->hit(r, ray_t, rec);
-        bool hit_right = right->hit(r, interval(ray_t.min, hit_left ? rec.t : ray_t.max), rec);
-
-
+        // If a hit was found, terminate traversal early
         return hit_left || hit_right;
     }
 

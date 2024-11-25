@@ -9,16 +9,18 @@ class triangle : public hittable {
 
 mutable int hit_call_count = 0;
 
-    triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr)
+    triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr, bool exclude_from_bvh = false)
         : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
-        uv0(vec3(0,0,0)), uv1(1,0,0), uv2(0,1,0) {
+        uv0(vec3(0,0,0)), uv1(1,0,0), uv2(0,1,0), excluded(exclude_from_bvh) {
 
         }
 
     triangle(const point3& v0, const point3& v1, const point3& v2, material* mat_ptr,
-             const vec3& uv0, const vec3& uv1, const vec3& uv2)
+             const vec3& uv0, const vec3& uv1, const vec3& uv2, bool exclude_from_bvh = false)
         : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
-        uv0(uv0), uv1(uv1), uv2(uv2) {}
+        uv0(uv0), uv1(uv1), uv2(uv2), excluded(exclude_from_bvh) {}
+
+    bool exclude_from_bvh() const override { return excluded; }
 
     bool hit(const ray& r, interval ray_t, hit_record& rec) const override {
         ++hit_call_count;
@@ -90,6 +92,8 @@ mutable int hit_call_count = 0;
     point3 v0, v1, v2; // Triangle vertices
     material* mat_ptr;
     vec3 uv0, uv1, uv2; // UV coordinates for texture mapping, ignore z componenet
+
+    bool excluded;
 };
 
 #endif

@@ -32,6 +32,7 @@
                     "type":"sphere", 
                     "center": [0, -25.0, 0], 
                     "radius":25.1, 
+                    "excluded":true,
                     "material":
                         { 
                             "ks":0.1, 
@@ -43,7 +44,7 @@
                             "reflectivity":1.0,
                             "isrefractive":false,
                             "refractiveindex":1.0 
-                        } 
+                        }
                 },
                 {
                     "type": "cylinder",

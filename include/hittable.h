@@ -35,6 +35,8 @@ class hittable {
     virtual bool hit(const ray& r, interval ray_t, hit_record& rec) const = 0;
 
     virtual aabb bounding_box() const = 0;
+
+    virtual bool exclude_from_bvh() const { return false; }
 };
 
 #endif

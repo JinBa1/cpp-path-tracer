@@ -70,19 +70,28 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
             }
         }
 
+        bool excluded = false;
+        if (shape_data.contains("excluded")) {
+            excluded = shape_data["excluded"];
+        }
+
         if (type == "sphere") {
-            world.add(make_shared<sphere>(
-                point3(shape_data["center"][0], shape_data["center"][1], shape_data["center"][2]),
-                shape_data["radius"],
-                mat
-            ));
+
+                world.add(make_shared<sphere>(
+                    point3(shape_data["center"][0], shape_data["center"][1], shape_data["center"][2]),
+                    shape_data["radius"],
+                    mat,
+                    excluded
+                ));
+          
         } else if (type == "cylinder") {
             world.add(make_shared<cylinder>(
                 point3(shape_data["center"][0], shape_data["center"][1], shape_data["center"][2]),
                 vec3(shape_data["axis"][0], shape_data["axis"][1], shape_data["axis"][2]),
                 shape_data["radius"],
                 shape_data["height"],
-                mat
+                mat,
+                excluded
             ));
         } else if (type == "triangle") {
             // customized uv mapping
@@ -95,14 +104,16 @@ void parse_scene(const json& scene_data, hittable_list& world, light_list& light
                     point3(shape_data["v1"][0], shape_data["v1"][1], shape_data["v1"][2]),
                     point3(shape_data["v2"][0], shape_data["v2"][1], shape_data["v2"][2]),
                     mat,
-                    uv0, uv1, uv2
+                    uv0, uv1, uv2,
+                    excluded
                 ));
             } else {
                 world.add(make_shared<triangle>(
                     point3(shape_data["v0"][0], shape_data["v0"][1], shape_data["v0"][2]),
                     point3(shape_data["v1"][0], shape_data["v1"][1], shape_data["v1"][2]),
                     point3(shape_data["v2"][0], shape_data["v2"][1], shape_data["v2"][2]),
-                    mat
+                    mat,
+                    excluded
                 )); 
             }
         }
