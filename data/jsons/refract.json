@@ -45,6 +45,23 @@
                             "isrefractive":false,
                             "refractiveindex":1.0 
                         }
+                },                
+                { 
+                    "type":"sphere", 
+                    "center": [-0.25, 0.25, 1.5],
+                    "radius":0.2, 
+                    "material":
+                        { 
+                            "ks":0.1, 
+                            "kd":0.9, 
+                            "specularexponent":20, 
+                            "diffusecolor":[0.8, 0.5, 0.5],
+                            "specularcolor":[1.0,1.0,1.0],
+                            "isreflective":false,
+                            "reflectivity":1.0,
+                            "isrefractive":false,
+                            "refractiveindex":1.0 
+                        } 
                 },
                 {
                     "type": "cylinder",
@@ -59,10 +76,10 @@
                             "specularexponent":20, 
                             "diffusecolor":[0.5, 0.5, 0.8],
                             "specularcolor":[1.0,1.0,1.0],
-                            "isreflective":false,
-                            "reflectivity":1.0,
-                            "isrefractive":false,
-                            "refractiveindex":1.0 
+                            "isreflective":true,
+                            "reflectivity":0.6,
+                            "isrefractive":true,
+                            "refractiveindex":1.5
                         } 
                 },
                 {
@@ -103,7 +120,7 @@
                 },
                 { 
                     "type":"sphere", 
-                    "center": [-0.3, 0.59, 1],
+                    "center": [-0.3, 0.593, 1],
                     "radius":0.2, 
                     "material":
                         { 
@@ -112,9 +129,9 @@
                             "specularexponent":20, 
                             "diffusecolor":[0.8, 0.5, 0.5],
                             "specularcolor":[1.0,1.0,1.0],
-                            "isreflective":false,
-                            "reflectivity":1.0,
-                            "isrefractive":false,
+                            "isreflective":true,
+                            "reflectivity":0.3,
+                            "isrefractive":true,
                             "refractiveindex":1.0 
                         } 
                 },

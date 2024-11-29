@@ -2,7 +2,7 @@
 #include <fstream>
 #include <iostream>
 
-ImageWriter::ImageWriter(const std::vector<color>& pixelData, int width, int height, const std::string& filename)
+ImageWriter::ImageWriter(const std::vector<Radiance>& pixelData, int width, int height, const std::string& filename)
     : pixelData(pixelData), width(width), height(height), filename(filename) {}
 
 // Function to validate width, height, and pixel data size

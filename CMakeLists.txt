@@ -14,3 +14,6 @@ file(GLOB SOURCES "src/*.cpp")
 
 # Add the executable
 add_executable(ray_tracer ${SOURCES})
+
+# Add optimization flag for ray_tracer target
+target_compile_options(ray_tracer PRIVATE -O1)

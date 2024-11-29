@@ -1,6 +1,6 @@
 {
     "nbounces":8, 
-    "rendermode":"binary",
+    "rendermode":"phong",
     "camera":
         { 
             "type":"pinhole", 
@@ -135,10 +135,13 @@
                             "specularexponent":20, 
                             "diffusecolor":[0.8, 0.5, 0.5],
                             "specularcolor":[1.0,1.0,1.0],
-                            "isreflective":true,
+                            "isreflective":false,
                             "reflectivity":1.0,
                             "isrefractive":false,
-                            "refractiveindex":1.0 
+                            "refractiveindex":1.0,
+                            "texture": "/home/jin/cgr/rt/data/textures/face.ppm",
+                            "tile_factor_u" : 3,
+                            "tile_factor_v" : 3
                         } 
                 }  
             ] 

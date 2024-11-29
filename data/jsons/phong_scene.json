@@ -1,5 +1,5 @@
 {
-    "nbounces":10, 
+    "nbounces":8, 
     "rendermode":"phong",
     "camera":
         { 
