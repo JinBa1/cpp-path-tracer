@@ -13,8 +13,8 @@ class Camera {
     // double aspect_ratio = 1.0;  // Ratio of image width over height
     int    image_width  = 100;  // Rendered image width in pixel count  from width
     int    image_height = 100;        // Rendered image height in pixel count from height
-    point3 lookfrom = point3(0,0,0);   // from position
-    point3 lookat   = point3(0,0,-1);  // from lookAt
+    Point3 lookfrom = Point3(0,0,0);   // from position
+    Point3 lookat   = Point3(0,0,-1);  // from lookAt
     Vector3   vup      = Vector3(0,1,0);     // from upVector
     double vfov     = 90;              // from fov (vertical)
     Radiance background = Radiance(0,0,0);   // Background color
@@ -24,14 +24,20 @@ class Camera {
     double exposure = 0.1;  // Exposure value for tone mapping
     std::string filename = "output.ppm";    // Output filename
     //Antialiasing
-    int samples_per_pixel = 10; // Number of samples per pixel
+    int samples_per_pixel = 1; // Number of samples per pixel
     //Defocus blur
     double aperture = 0.02;  // Diameter of the lens aperture
     double focus_dist = 1.5;  // Distance from the camera to the focal plane
     // RENDER MODE
     RenderMode render_mode = RenderMode::PATH;
 
-    bool allow_brdf = false;
+    bool allow_brdf = false; // Flag to enable BRDF shading
+
+    double RR_PROB = 0.8;  // Russian Roulette termination probability
+
+    ToneMapper tone_mapper = ToneMapper::LUMINANCE; // Tone mapping method
+
+    AntiAliasing sampling_method = AntiAliasing::POISSON; // Anti-aliasing method
 
     void print_specs() {
         std::cout << "Specifications:" << std::endl;
@@ -49,11 +55,18 @@ class Camera {
     // Tone mapping selector
     Radiance tone_map(const Vector3& hdr_color) const {
         double exp_exposure = 1.0 - exposure;
-        // return linear_tone_map(hdr_color, exp_exposure);
-        // return reinhard_tone_map(hdr_color, exp_exposure);
-        // return filmic_tone_map(hdr_color, exp_exposure);
-        return luminance_based_scaling(hdr_color, exp_exposure);
-        // return hdr_color;
+        switch (tone_mapper) {
+            case ToneMapper::LINEAR:
+                return linear_tone_map(hdr_color, exp_exposure);
+            case ToneMapper::REINHARD:
+                return reinhard_tone_map(hdr_color, exp_exposure);
+            case ToneMapper::FILMIC:
+                return filmic_tone_map(hdr_color, exp_exposure);
+            case ToneMapper::LUMINANCE:
+                return luminance_based_scaling(hdr_color, exp_exposure);
+            default:
+                return luminance_based_scaling(hdr_color, exp_exposure);
+        }
     }
 
     void render(const Object& world,  Light& lights) {
@@ -76,8 +89,8 @@ class Camera {
     /* Private Camera Variables Here */
     // int    image_height;   // Rendered image height
     double aspect_ratio;  // Ratio of image width over height
-    point3 center;         // Camera center
-    point3 pixel00_loc;    // Location of pixel 0, 0
+    Point3 center;         // Camera center
+    Point3 first_pixel;    // Location of pixel 0, 0
     Vector3   pixel_delta_u;  // Offset to pixel to the right
     Vector3   pixel_delta_v;  // Offset to pixel below
     Vector3   u, v, w;              // Camera frame basis vectors
@@ -87,11 +100,19 @@ class Camera {
     void initialize() ;
 
     // ANTI-ALIASING + DEFOUCS BLUR
-    Ray get_sampled_ray(int i, int j) const ;
+    Ray get_sampled_ray(int i, int j, Vector3 offset) const ;
     // PIXEL SAMPLING
     Vector3 sample_offset() const {
-        return sample_square(); // random point in the pixel
+        return sample_square(); // random sampling
     }
+
+    // JITTERED SAMPLING
+    Vector3 jittered_sample(int sample_index) const ;
+
+    // Poisson Disk Sampling (2D)
+    std::vector<Vector3> generate_poisson_disk_samples(int sample_count, double min_distance);
+
+
     // LENS SAMPLING
     Vector3 random_point_in_aperture() const {
         Vector3 point = random_in_unit_disk() * (aperture / 2.0);
@@ -100,10 +121,10 @@ class Camera {
 
     Radiance trace_binary(const Ray& r, const Object& world) const;
 
-    // HANDLE 3 CASE, USE APPROXIMATION AS LONG AS IS REFRATIVE
     Radiance trace_phong(const Ray& r, const Object& world, const Light& lights, int depth) const;
 
     Radiance schlick_blend(Radiance locals, Radiance reflected, Radiance refracted, double eta, double cos_theta_i, double R0) const {
+        // Blend the final radiance using the Schlick approximation
         double fresnel_reflectance = R0 + (1 - R0) * pow(1 - cos_theta_i, 5);
         double fresnel_transmittance = 1 - fresnel_reflectance;
         double local_weight = std::max(0.0, 1 - fresnel_reflectance - fresnel_transmittance);
@@ -113,8 +134,10 @@ class Camera {
     // PATH TRACING
     Radiance trace_path(const Ray& r, const Object& world, const Light& lights, int depth) const {
         if(allow_brdf){
+            // Use BRDF shading
             return trace_path_brdf(r, world, lights, depth);
         }else{
+            // Use Phong shading
             return trace_path_phong(r, world, lights, depth);
         }
     }
@@ -131,7 +154,7 @@ class Camera {
     std::vector<Radiance> render_path(const Object& world,  Light& lights) ;
 
     void output_image(const std::vector<Radiance>& pixelData) const {
-        std::clog << "\rDone.                 \n";
+        std::clog << "\rRender Complete.                 \n";
         ImageWriter writer(pixelData, image_width, image_height, filename);
         // Write the PPM file
         if (writer.writePPM()) {

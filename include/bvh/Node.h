@@ -10,34 +10,26 @@
 class Node : public Object {
   public:
     shared_ptr<Object> left;
-    shared_ptr<Object> right;  // ADD GETTER FUNCTION AND MOVE TO PRIVATE
+    shared_ptr<Object> right; 
 
 
     Node(ObjectList list) : Node(list.objects, 0, list.objects.size()) {
     }
 
     Node(std::vector<shared_ptr<Object>>& objects, size_t start, size_t end) {
-        // random_splits(objects, start, end);
+        // Calculate the bounding box of all objects in the list
 
+        // random_splits(objects, start, end);
         // la_splits(objects, start, end);
-        
         sah_splits(objects, start, end);
     }
 
+    // Different splitting strategies
     void random_splits(std::vector<shared_ptr<Object>>& objects, size_t start, size_t end);
     void la_splits(std::vector<shared_ptr<Object>>& objects, size_t start, size_t end);
     void sah_splits(std::vector<shared_ptr<Object>>& objects, size_t start, size_t end);
 
     bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const override {
-        // if (!bbox.intersect(r, ray_t)) {
-        //     return false; }
-        // // visualizing
-        // rec.t = ray_t.min; // Set a dummy hit record
-        // rec.p = r.at(ray_t.min);
-        // rec.normal = Vector3(1, 0, 0); // Arbitrary normal
-        // rec.mat_ptr = nullptr; // No material for bounding box visualization
-        // return true;
-
         // Check if the ray intersects the bounding box of this node
         if (!bbox.intersect(r, ray_t)) {
             return false;
@@ -54,8 +46,6 @@ class Node : public Object {
     BoundingBox bounding_box() const override { return bbox; }
 
   private:
-    // shared_ptr<Object> left;
-    // shared_ptr<Object> right;
     BoundingBox bbox;
 };
 

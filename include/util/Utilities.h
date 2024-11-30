@@ -7,8 +7,6 @@
 #include <memory>
 #include <random>
 
-// Common Headers
-
 
 // C++ Std Usings
 
@@ -49,16 +47,17 @@ inline double random_double(double min, double max) {
 
 
 inline double saturate(double v) {
+    // Clamp a value to the [0, 1] range
     return std::fmax(0.0, std::fmin(v, 1.0));
 }
 
-template<typename T> T Lerp(T a, T b, double t)
-{
+template<typename T> T Lerp(T a, T b, double t) {
+    // Linear interpolation between two values
     return a * (1 - t) + b * t;
 }
 
 
-
+// Enums
 enum class RenderMode {
     BINARY,
     PHONG,
@@ -70,6 +69,19 @@ enum class UseBVH {
     DISABLE
 };
 
+enum class ToneMapper {
+    LINEAR,
+    REINHARD,
+    FILMIC,
+    LUMINANCE
+};
+
+enum class AntiAliasing {
+    RANDOM,
+    JITTERED,
+    POISSON
+};
+
 // Common Headers
 
 #include "util/Radiance.h"
@@ -79,11 +91,12 @@ enum class UseBVH {
 
 
 inline Vector3 reflect_pm(const Vector3& v, const Vector3& n) {
+    // Reflects a vector v around a normal n
     return unit_vector(v - 2 * dot(v, n) * n);
 }
 
-// REFRACITON
 inline Vector3 refract(const Vector3& uv, const Vector3& n, double eta) {
+    // Using snell's law to refract a ray
     double cos_theta = std::fmin(dot(-uv, n), 1.0);
     Vector3 r_out_perp = eta * (uv + cos_theta * n);
     Vector3 r_out_parallel = -std::sqrt(std::abs(1.0 - r_out_perp.length_squared())) * n;
@@ -91,22 +104,16 @@ inline Vector3 refract(const Vector3& uv, const Vector3& n, double eta) {
 }
 
 // INDIRECT RAYS
-// Generates a random point inside a unit sphere
 inline Vector3 random_in_unit_sphere() {
+    // Generates a random point inside a unit sphere
     while (true) {
         auto p = Vector3(random_double(-1, 1), random_double(-1, 1), random_double(-1, 1));
         if (p.length_squared() < 1) return p;
     }
 }
 
-// PIXEL SAMPLING
-inline Vector3 sample_square() {
-    // Returns a random point in the [-0.5, -0.5] to [+0.5, +0.5] range
-    return Vector3(random_double() - 0.5, random_double() - 0.5, 0);
-} 
-
-// Generates a random direction within a hemisphere around a given normal
 inline Vector3 random_in_hemisphere(const Vector3& normal) {
+    // Generates a random direction within a hemisphere around a given normal
     Vector3 in_unit_sphere = random_in_unit_sphere();
     // If the point is in the same hemisphere as the normal, keep it
     if (dot(in_unit_sphere, normal) > 0.0) {
@@ -116,30 +123,20 @@ inline Vector3 random_in_hemisphere(const Vector3& normal) {
     }
 } // END INDIRECT RAYS
 
+// PIXEL SAMPLING
+inline Vector3 sample_square() {
+    // Returns a random point in the [-0.5, -0.5] to [+0.5, +0.5] range
+    return Vector3(random_double() - 0.5, random_double() - 0.5, 0);
+} 
+
 // LENS SAMPLING
 inline Vector3 random_in_unit_disk() {
+    // Generates a random point inside a unit disk
     while (true) {
         auto p = Vector3(random_double(-1, 1), random_double(-1, 1), 0);
         if (p.length_squared() < 1) return p;
     }
 }
-
-inline Vector3 random_cosine_weighted_direction() {
-    double r1 = random_double();
-    double r2 = random_double();
-    double z = sqrt(1 - r2);
-
-    double phi = 2 * M_PI * r1;
-    double x = cos(phi) * sqrt(r2);
-    double y = sin(phi) * sqrt(r2);
-
-    return Vector3(x, y, z); // In local coordinates
-}
-
-
-
-
-
 
 
 

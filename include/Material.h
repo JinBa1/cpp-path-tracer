@@ -26,7 +26,6 @@ class Material {
         double reflectivity = 1.0; // Reflectivity coefficient
 
         double ka = 0.5; // Ambient reflection coefficient
-        Radiance ambientcolor = Radiance(0.8, 0.8, 0.8); // Specular color
 
         bool is_refractive = false; // Refractive material
         double refractiveindex = 1.0; // Refractivity coefficient
@@ -47,12 +46,16 @@ class Material {
         Radiance base_color = Radiance(0.8, 0.8, 0.8); // Base color for non-metals
 
 
-        FancyBRDF build_brdf(const Vector3& n, const Vector3&dpdu, const Vector3&dpdv) const
+        FancyBRDF build_brdf(const Vector3& n, double u, double v) const
         {
             // Sample material properties
-            const Vector3 kx = base_color;
-            const Vector3 kd = Lerp(kx, Vector3(0.0, 0.0, 0.0), metalness);
-            const Vector3 ks = Lerp(Vector3(0.04, 0.04, 0.04), kx, metalness);
+            Radiance kx_0 = base_color;
+            if (has_texture) {
+                kx_0 = get_texture_color(u, v); // Use texture color
+            }
+            const Radiance kx = kx_0;
+            const Radiance kd = Lerp(kx, Vector3(0.0, 0.0, 0.0), metalness);
+            const Radiance ks = Lerp(Vector3(0.04, 0.04, 0.04), kx, metalness);
 
             // Vector3 h(dot(normalize(dpdu), Vector3(1,1,1)),
             //        dot(normalize(dpdv), Vector3(1,1,1)),

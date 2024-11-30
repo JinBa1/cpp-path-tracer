@@ -1,6 +1,7 @@
 {
     "nbounces": 8,
     "rendermode": "phong",
+    "useBVH":true,
     "camera": {
         "type": "pinhole",
         "width": 1920,

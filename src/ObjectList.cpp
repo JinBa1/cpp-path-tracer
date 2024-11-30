@@ -19,10 +19,12 @@ void ObjectList::add(std::shared_ptr<Object> object) {
 }
 
 void ObjectList::build() {
+    // Build the BVH
     std::vector<std::shared_ptr<Object>> bvh_objects;
 
     for (const auto& obj : objects) {
         if (!obj->exclude_from_bvh()) {
+            // if the object is not excluded from the BVH, add it to the list
             bvh_objects.push_back(obj);
         }
     }
@@ -34,10 +36,7 @@ void ObjectList::build() {
 }
 
 bool ObjectList::intersect_bvh_enabled(const Ray& r, Interval ray_t, IntersectionRecord& rec) const {
-    // if (root) {
-    //     return root->hit(r, ray_t, rec);
-    // }
-    // return false;
+    // Check if the ray intersects the BVH
     IntersectionRecord temp_rec;
     bool intersected = false;
     auto nearest_t = ray_t.max;
@@ -63,6 +62,7 @@ bool ObjectList::intersect_bvh_enabled(const Ray& r, Interval ray_t, Intersectio
 
 // NOT USING BVH
 bool ObjectList::intersect_bvh_disabled(const Ray& r, Interval ray_t, IntersectionRecord& rec) const {
+    // Check if the ray intersects any object in the list
     IntersectionRecord temp_rec;
     bool intersected = false;
     auto nearest_t = ray_t.max;

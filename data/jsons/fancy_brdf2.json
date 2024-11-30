@@ -15,7 +15,7 @@
             "allowBRDF": true,
             "aperture": 0.02,
             "focus_dist": 1.5,
-            "samples_per_pixel": 10,
+            "samples_per_pixel": 100,
             "sampling_method" : "poisson_disk"
         },
     "scene":
@@ -30,7 +30,7 @@
                     "width":2,
                     "height":2,
                     "intensity":[3, 3, 3],
-                    "num_samples":8
+                    "num_samples":32
                 },
                 { 
                     "type":"rectlight",
@@ -40,7 +40,7 @@
                     "width":1.1,
                     "height":1.1,
                     "intensity":[1.2, 1.2, 1.2],
-                    "num_samples":8
+                    "num_samples":32
                 }
             ], 
             "shapes":[ 
@@ -60,8 +60,8 @@
                             "isrefractive":false,
                             "refractiveindex":1.0,
                             "has_brdf": true,
-                            "roughness": 0.47,
-                            "metalness": 0.73,
+                            "roughness": 0.9,
+                            "metalness": 0.6,
                             "base_color": [0.75, 0.75, 0.75] 
                         } 
                 },
@@ -104,8 +104,8 @@
                             "isrefractive":false,
                             "refractiveindex":1.0,
                             "has_brdf": true,
-                            "roughness": 0.45,
-                            "metalness": 0.6,
+                            "roughness": 0.73,
+                            "metalness": 0.1,
                             "base_color": [1.0, 0.84, 0.0] 
                         } 
                 },
@@ -126,8 +126,8 @@
                             "isrefractive":false,
                             "refractiveindex":1.0, 
                             "has_brdf": true,
-                            "roughness": 0.9,
-                            "metalness": 0.0,
+                            "roughness": 0.3,
+                            "metalness": 0.6,
                             "base_color": [0.5, 1, 0.5],
                             "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm"
                         } 
@@ -149,8 +149,8 @@
                             "isrefractive":false,
                             "refractiveindex":1.0, 
                             "has_brdf": true,
-                            "roughness": 0.9,
-                            "metalness": 0.0,
+                            "roughness": 0.3,
+                            "metalness": 0.6,
                             "base_color": [0.5, 1, 0.5] ,
                             "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm"
                         } 
@@ -202,173 +202,49 @@
 
 
 
-                {
-                    "type": "triangle",
-                    "v0": [1, -0.5, 0],
-                    "v1": [1, -0.5, 1],
-                    "v2": [1, 1.0, 1],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.25,
-                        "metalness": 0.85,
-                        "base_color": [0.89, 0.15, 0.0]
-                    }
-                },
-                {
-                    "type": "triangle",
-                    "v0": [1, -0.5, 0],
-                    "v1": [1, 1.0, 1],
-                    "v2": [1, 1.0, 0],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.20,
-                        "metalness": 0.8,
-                        "base_color": [0.31, 0.96, 0.12]
-                    }
-                },
-                {
-                    "type": "triangle",
-                    "v0": [1, -0.5, 1],
-                    "v1": [1, -0.5, 2],
-                    "v2": [1, 1.0, 2],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.15,
-                        "metalness": 0.75,
-                        "base_color": [0.06, 0.12, 0.86]
-                    }
-                },
-                {
-                    "type": "triangle",
-                    "v0": [1, -0.5, 1],
-                    "v1": [1, 1.0, 2],
-                    "v2": [1, 1.0, 1],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.2,
-                        "metalness": 0.7,
-                        "base_color": [0.85, 0.88, 0.0]
-                    }
-                },
-                {
-                    "type": "triangle",
-                    "v0": [1, 1.0, 0],
-                    "v1": [1, 1.0, 1],
-                    "v2": [1, 2.5, 1],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.25,
-                        "metalness": 0.65,
-                        "base_color": [0.89, 0.0, 0.97]
-                    }
-                },
-                {
-                    "type": "triangle",
-                    "v0": [1, 1.0, 0],
-                    "v1": [1, 2.5, 1],
-                    "v2": [1, 2.5, 0],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.2,
-                        "metalness": 0.70,
-                        "base_color": [0.0, 0.97, 0.93]
-                    }
-                },
-                {
-                    "type": "triangle",
-                    "v0": [1, 1.0, 1],
-                    "v1": [1, 2.5, 2],
-                    "v2": [1, 2.5, 1],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.15,
-                        "metalness": 0.75,
-                        "base_color": [0.88, 0.0, 0.91]
-                    }
-                },
-                {
-                    "type": "triangle",
-                    "v0": [1, 1.0, 1],
-                    "v1": [1, 1.0, 2],
-                    "v2": [1, 2.5, 2],
-                    "material": {
-                        "ks": 0.1,
-                        "kd": 0.9,
-                        "specularexponent": 20,
-                        "diffusecolor": [0.5, 0.8, 0.5],
-                        "specularcolor": [1.0, 1.0, 1.0],
-                        "isreflective": true,
-                        "reflectivity": 1.0,
-                        "isrefractive": false,
-                        "refractiveindex": 1.0,
-                        "has_brdf": true,
-                        "roughness": 0.1,
-                        "metalness": 0.8,
-                        "base_color": [0.0, 0.79, 0.79]
-                    }
+                { 
+                    "type":"triangle", 
+                    "v0": [ 1, -0.5, 0],
+                    "v1": [ 1, -0.5, 2],
+                    "v2": [ 1, 2.5, 2],
+                    "material":
+                        { 
+                            "ks":0.1, 
+                            "kd":0.9, 
+                            "specularexponent":20, 
+                            "diffusecolor":[0.5, 0.8, 0.5],
+                            "specularcolor":[1.0,1.0,1.0],
+                            "isreflective":true,
+                            "reflectivity":1.0,
+                            "isrefractive":false,
+                            "refractiveindex":1.0,
+                            "has_brdf": true,
+                            "roughness": 1.0,
+                            "metalness": 0.0,
+                            "base_color": [0.3, 0.5, 0.5] 
+                        } 
+                } ,
+                { 
+                    "type":"triangle", 
+                    "v0": [ 1, 2.5, 0],
+                    "v1": [ 1, -0.5, 0],
+                    "v2": [ 1, 2.5, 2],
+                    "material":
+                        { 
+                            "ks":0.1, 
+                            "kd":0.9, 
+                            "specularexponent":20, 
+                            "diffusecolor":[0.5, 0.8, 0.5],
+                            "specularcolor":[1.0,1.0,1.0],
+                            "isreflective":true,
+                            "reflectivity":1.0,
+                            "isrefractive":false,
+                            "refractiveindex":1.0,
+                            "has_brdf": true,
+                            "roughness": 1.0,
+                            "metalness": 0.0,
+                            "base_color": [0.3, 0.5, 0.5] 
+                        } 
                 }
             ] 
         } 

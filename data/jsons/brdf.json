@@ -10,7 +10,8 @@
         "upVector":[0.0, 1.0, 0.0],
         "fov":45.0,
         "exposure":0.1,
-        "allowBRDF": true
+        "allowBRDF": false,
+        "samples_per_pixel": 5
     },
     "scene": { 
         "backgroundcolor": [0.25, 0.25, 0.25], 

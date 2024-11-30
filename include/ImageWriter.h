@@ -13,10 +13,10 @@ public:
     bool writePPM() const;
 
 private:
-    const std::vector<Radiance> pixelData;
-    int width;
-    int height;
-    std::string filename;
+    const std::vector<Radiance> pixelData; // Pixel data in Lumiance format
+    int width;  // Image width in pixels
+    int height;  // Image height in pixels
+    std::string filename;  // Output filename
 
     std::string getPPMHeader() const;
     bool validateParameters() const;

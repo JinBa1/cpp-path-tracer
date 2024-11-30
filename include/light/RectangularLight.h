@@ -5,16 +5,16 @@
 
 class RectangularLight : public Light {
 public:
-    point3 position;  // Center of the area light
+    Point3 position;  // Center of the area light
     Vector3 u, v;        // Basis vectors defining the area light plane
     double width, height;  // Dimensions of the area light
     Radiance intensity;  // Light intensity
 
     int num_samples;  // Number of samples for soft shadows
-    double shadow_frac = 0.0;
+    double shadow_frac = 0.0;  // Design choice, shadow are compeletly dark
 
     RectangularLight(
-        const point3& position,
+        const Point3& position,
         const Vector3& u,
         const Vector3& v,
         double width,
@@ -23,25 +23,27 @@ public:
         int num_samples = 16
     ) : position(position), u(u), v(v), width(width), height(height), intensity(intensity), num_samples(num_samples) {}
 
-    Radiance intensity_at(const point3& point, const point3& sample_point, Vector3& direction) const {
-        direction = unit_vector(sample_point - point);  // Approximation for now
+    Radiance intensity_at(const Point3& point, const Point3& sample_point, Vector3& direction) const {
+        // Compute the direction and intensity of the light at a given point
+        direction = unit_vector(sample_point - point);
         return intensity / dot(sample_point - point, sample_point - point);
     }
 
 Radiance phong_shading(
-    const point3& p,
+    const Point3& p,
     const Vector3& normal,
     const Vector3& view_dir,
     const IntersectionRecord& rec,
     const Object& world,
     const Radiance& ambient_light
 ) const override {
+    // Calculate the shading contribution from the area light
     Material mat = *rec.mat_ptr;
     Radiance total_result(0, 0, 0); // Accumulate results from all samples
 
     for (int i = 0; i < num_samples; ++i) {
         // Sample a point on the area light's surface
-        point3 sample_point = random_sample_on_surface();
+        Point3 sample_point = random_sample_on_surface();
         Vector3 light_dir = unit_vector(sample_point - p);
 
         // Shadow factor (0 for fully shadowed, 1 for fully lit)
@@ -51,8 +53,9 @@ Radiance phong_shading(
         // Light intensity from the sampled point
         Radiance light_intensity = intensity_at(p,sample_point,light_dir); // Falloff with distance^2
         light_intensity += ambient_light; // Add ambient light
-        // FALL BACK TO BLINN-PHONG SHADING
 
+
+        //BLINN-PHONG SHADING
         // Sample texture color (if any) for diffuse and ambient contributions
         Radiance texture_color = mat.diffusecolor; // Default to diffusecolor
         if (mat.has_texture) {
@@ -78,18 +81,19 @@ Radiance phong_shading(
 
 
     Radiance brdf_shading(            
-        const point3& p,
+        const Point3& p,
         const Vector3& normal,
         const Vector3& view_dir,
         const FancyBRDF& brdf,
         const Object& world,
         const Vector3& coefficient
     ) const override {
+        // Calculate the shading contribution from the area light
         Radiance total_result(0, 0, 0); // Accumulator for all sample contributions
 
         for (int i = 0; i < num_samples; ++i) {
             // Sample a point on the area light's surface
-            point3 sample_point = random_sample_on_surface();
+            Point3 sample_point = random_sample_on_surface();
             Vector3 light_dir = unit_vector(sample_point - p);
 
             // Compute shadow factor for the sampled light point
@@ -113,54 +117,54 @@ Radiance phong_shading(
     }
 
 private:
-    point3 random_sample_on_surface() const {
+    Point3 random_sample_on_surface() const {
         // Uniform sampling on a rectangle
         double s = random_double(-0.5, 0.5);
         double t = random_double(-0.5, 0.5);
         return position + (s * width * u) + (t * height * v);
     }
 
-    double shadow_factor_from_sample(const point3& p, const point3& sample_point, const Object& world) const {
-        Vector3 light_dir = unit_vector(sample_point - p);
-        Ray shadow_ray(p + 0.001 * light_dir, light_dir);
-
-        IntersectionRecord shadow_rec;
-        bool is_shadowed = world.intersect(shadow_ray, Interval(0.001, infinity), shadow_rec);
-
-        return is_shadowed ? 0.0 : 1.0;  // Fully blocked or fully illuminated
-
+    double shadow_factor_from_sample(const Point3& p, const Point3& sample_point, const Object& world) const {
         // Vector3 light_dir = unit_vector(sample_point - p);
         // Ray shadow_ray(p + 0.001 * light_dir, light_dir);
 
         // IntersectionRecord shadow_rec;
-        // double shadow = 1.0; // Fully illuminated by default
-        // int depth = 0;       // Initialize recursion depth
+        // bool is_shadowed = world.intersect(shadow_ray, Interval(0.001, infinity), shadow_rec);
 
-        // while (world.intersect(shadow_ray, Interval(0.001, infinity), shadow_rec)) {
-        //     Material* mat = shadow_rec.mat_ptr;
+        // return is_shadowed ? 0.0 : 1.0;  // Fully blocked or fully illuminated
 
-        //     if (mat->is_refractive) {
-        //         // Calculate transmittance based on material properties
-        //         double transmittance = 1.0 / mat->refractiveindex; // Simplified model
-        //         shadow *= transmittance;
+        Vector3 light_dir = unit_vector(sample_point - p);
+        Ray shadow_ray(p + 0.001 * light_dir, light_dir);
 
-        //         // Adjust the ray to continue through the refractive object
-        //         Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, mat->refractiveindex);
-        //         shadow_ray = Ray(shadow_rec.p + 0.001 * refract_dir, refract_dir);
-        //     } else {
-        //         // Non-refractive object fully or partially blocks the light
-        //         shadow *= shadow_frac; // Allow partial shadowing for opaque materials
-        //         break;
-        //     }
+        IntersectionRecord shadow_rec;
+        double shadow = 1.0; // Fully illuminated by default
+        int depth = 0;       // Initialize recursion depth
 
-        //     depth++;
-        //     if (depth >= 8) {
-        //         shadow *= shadow_frac; // Treat as partially shadowed
-        //         break;
-        //     }
-        // }
+        while (world.intersect(shadow_ray, Interval(0.001, infinity), shadow_rec)) {
+            Material* mat = shadow_rec.mat_ptr;
 
-        // return shadow;
+            if (mat->is_refractive) {
+                // Calculate transmittance based on material properties
+                double transmittance = 1.0 / mat->refractiveindex; // Simplified model
+                shadow *= transmittance;
+
+                // Adjust the ray to continue through the refractive object
+                Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, mat->refractiveindex);
+                shadow_ray = Ray(shadow_rec.p + 0.001 * refract_dir, refract_dir);
+            } else {
+                // Non-refractive object fully or partially blocks the light
+                shadow *= shadow_frac; // Allow partial shadowing for opaque materials
+                break;
+            }
+
+            depth++;
+            if (depth >= 8) {
+                shadow *= shadow_frac; // Treat as partially shadowed
+                break;
+            }
+        }
+
+        return shadow;
     }
 };
 

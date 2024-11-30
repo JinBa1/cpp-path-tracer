@@ -42,6 +42,18 @@ Demonstarted via binary_scene.ppm, binary_primitives.ppm.
 5. Blinn-Phong shading
 Implemented in <Camera.cpp> and <light/LightList.h> <light/PointLight.h>
 relavant functions: trace_phong, phong_shading
+New optional input field -  "scene":
+                            { 
+                                ...
+       Optional intensity ->    "ambient_light" : [0.25, 0.25, 0.25]
+                                ...
+                                    "lightsources":[
+                                        ... 
+                                    ],
+                                    "shapes":[
+                                        ... 
+                                    ]
+                            }
 Use blinn-phong mode with input field - "rendermode" : "phong"
 Demonstrated via simple_phong.ppm and all other testsuites rendered with phong rendermode.
 
@@ -53,7 +65,13 @@ Demonstrated via simple_phong.ppm and all other testsuites rendered with phong r
 7. Tone mapping (linear)
 Implemented in <util/Radiance.h> <Camera.h>
 relavant functions: tone_map, linear_tone_map, reinhard_tone_map, filmic_tone_map, luminance_based_scaling
-Use different tone mapping functions by changing the tone_map function body
+New optional input field - "camera":
+                            { 
+                                ...
+          Optional ->           "toneMapper" : "linear",  ("reinhard" "filmic" "luminance")
+                                ...
+                            }
+Without explicitly stated, luminance would be used.
 Demonstrated via all testsuites except for binary renders.
 
 8. Reflection
@@ -72,7 +90,7 @@ relavant functions: load_texture, get_texture_color, phong_shading, uv_map
 New input field required - "material":
                             { 
                                 ...
-    Path to ppm3 texture        "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm",
+    Path to ppm3 texture ->     "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm",
                                 "uv0": [0.2, 0.8],    (optional, traingle only)
                                 "uv1": [0.9, 0],      (optional, traingle only)
                                 "uv2": [0, 0.7],      (optional, traingle only)
@@ -87,9 +105,9 @@ Demonstarted via texture.ppm.
 Implemented in <bvh/BoundingBox.h> <bvh/Node.h> <Node.cpp> 
 relavant functions in <ObjectList.cpp>: build, intersect_bvh_enabled
 New input field required - {
-                            "nbounces":8, 
-                            "rendermode":"phong",
-    Set to enable           "useBVH" : false, (default true)
+                            ...
+    Set to enable   ->      "useBVH" : false, (default true)
+                            ...
                             "camera":
                                 { 
                                     ...
@@ -100,19 +118,20 @@ New input field required - {
                                 }
                             }
 Demonstarted via logging intersect test counts and render time
-Evaluation of logs from bvh_0.ppm can be found in report.
+Evaluation of logs from bvh.ppm can be found in report.
 
 Pathtracer
 Features:
 
 1. Antialiasing via multi-sampling pixels
 Implemented in <Camera.h> <Camera.cpp>
-relavant functions: get_sampled_ray, sample_offset
+relavant functions: get_sampled_ray, sample_offset, jittered_sample, generate_poisson_disk_samples
 Currently only support - "rendermode" : "path"
 New input field required - "camera":
                             { 
                                 ...
                                 "samples_per_pixel" : 100,
+            Optional ->         "sampling_method" : "random" ("jittered", "poisson_disk")
                                 ...
                             }
 Demonstrated via path_scene.ppm 
@@ -140,7 +159,7 @@ New input field required - {
                             ... 
                             "camera":
                                 { 
-                                    "allowBRDF": true, (default false)
+      Set to use brdf ->            "allowBRDF": true, (default false)
                                     ...
                                 },
                             "scene":
@@ -152,7 +171,7 @@ New input field required - {
                                         "material":
                                                     { 
                                                         ...
-                                                        "has_brdf": true,
+      All shapes must have this set ->                  "has_brdf": true,
                                                         "roughness": 0.8,
                                                         "metalness": 0.0,
                                                         "base_color": [0.8, 0.5, 0.5], 
@@ -164,7 +183,7 @@ New input field required - {
                                     ]
                                 }
                             } 
-Demonstrated via brdf.ppm 
+Demonstrated via fancy_brdf.ppm 
 
 4. Soft shadows via sampling area lights
 Implemented in <light/RectangularLight.h>
@@ -174,8 +193,8 @@ New input field required - "lightsources":
                             {
                                 "type": "rectlight",
                                 "position": [0, 1.0, 0.5],
-      plane it lies on          "u": [0.5, 0, 0],
-      plane it lies on          "v": [0, 0, -0.5],
+      plane it lies on ->       "u": [0.5, 0, 0],
+                       ->       "v": [0, 0, -0.5],
                                 "width": 1.0,
                                 "height": 1.0,
                                 "intensity": [0.5, 0.5, 0.5],
@@ -188,5 +207,18 @@ Comparision can be found in report.
 5. Multi-bounce path tracing
 Implemented in <Camera.h> <Camera.cpp>
 relavant functions: render_path, trace_path_phong, trace_path_brdf
+New optional input filed  - {
+                            ...
+    Set to customize  ->    "RR_PROB" : 0.6, (Russian Roulette termination)
+                            ...
+                            "camera":
+                                { 
+                                    ...
+                                },
+                            "scene":
+                                { 
+                                    ...
+                                }
+                            }
 Currently only support - "rendermode" : "path"
 Demonstrated via path_scene.ppm.

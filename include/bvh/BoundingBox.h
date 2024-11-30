@@ -14,7 +14,7 @@ class BoundingBox {
         pad_to_minimums();
       }
 
-    BoundingBox(const point3& a, const point3& b) {
+    BoundingBox(const Point3& a, const Point3& b) {
         // Treat the two points a and b as extrema for the bounding box, so we don't require a
         // particular minimum/maximum coordinate order.
 
@@ -32,12 +32,14 @@ class BoundingBox {
     }
 
     const Interval& axis_interval(int n) const {
+        // Return the interval for the specified axis
         static const Interval* axes[] = { &x, &y, &z };
         return *axes[n];
     }
 
     bool intersect(const Ray& r, Interval ray_t) const {
-        const point3& ray_orig = r.origin();
+        // Check if the ray intersects the AABB
+        const Point3& ray_orig = r.origin();
         const Vector3& ray_dir = r.direction();
 
         if (!axis_intersect(ray_orig[0], ray_dir[0], x, ray_t)) return false;
@@ -48,6 +50,7 @@ class BoundingBox {
     }
 
     double surface_area() const {
+        // Calculate the surface area of the AABB
         double dx = x.size();
         double dy = y.size();
         double dz = z.size();
@@ -61,6 +64,7 @@ class BoundingBox {
 
     private:
         Interval construct_interval(double a, double b) const {
+            // Construct an interval from two values
             return (a <= b) ? Interval(a, b) : Interval(b, a);
         }
 
@@ -74,6 +78,7 @@ class BoundingBox {
         }
 
         bool axis_intersect(double origin, double direction, const Interval& axis, Interval& ray_t) const {
+            // Check if the ray intersects the axis-aligned interval
             double adinv = 1.0 / direction;
             auto t0 = (axis.min - origin) * adinv;
             auto t1 = (axis.max - origin) * adinv;

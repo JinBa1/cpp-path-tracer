@@ -3,8 +3,9 @@
 #include "brdf/FancyBRDF.h"
 
 void Camera::initialize() {
+    // Calculate the aspect ratio
     aspect_ratio = double(image_width) / double(image_height);
-    center = lookfrom;
+    center = lookfrom; // Camera center is the lookfrom point
 
     // Determine viewport dimensions.
     auto focal_length = (lookfrom - lookat).length();
@@ -37,34 +38,65 @@ void Camera::initialize() {
 
     // Calculate the location of the upper left pixel.
     auto viewport_upper_left = center - (focal_length * w) - viewport_u/2 - viewport_v/2;
-    pixel00_loc = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
+    first_pixel = viewport_upper_left + 0.5 * (pixel_delta_u + pixel_delta_v);
 }
 
 
-// ANTI-ALIASING
-Ray Camera::get_sampled_ray(int i, int j) const {
-    // // Generate a random offset within the [-0.5, +0.5] range
-    // Vector3 offset = sample_square();
+Vector3 Camera::jittered_sample(int sample_index) const {
+    int sqrt_samples = static_cast<int>(std::sqrt(samples_per_pixel));
+    int x = sample_index % sqrt_samples;
+    int y = sample_index / sqrt_samples;
 
-    // // Compute the sampled pixel position
-    // Vector3 pixel_sample = pixel00_loc
-    //                 + ((i + offset.x()) * pixel_delta_u)
-    //                 + ((j + offset.y()) * pixel_delta_v);
+    double dx = random_double() / sqrt_samples;
+    double dy = random_double() / sqrt_samples;
 
-    // Vector3 ray_origin = center;
-    // Vector3 ray_direction = pixel_sample - ray_origin;
+    return Vector3((x + dx) / sqrt_samples - 0.5, 
+                (y + dy) / sqrt_samples - 0.5, 0);
+}
 
-    // return ray(ray_origin, ray_direction);
-    Vector3 offset = sample_offset();
+std::vector<Vector3> Camera::generate_poisson_disk_samples(int sample_count, double min_distance) {
+    std::vector<Vector3> samples;
+    std::mt19937 gen(std::random_device{}());
+    std::uniform_real_distribution<> dist(0.0, 1.0);
+
+    for (int i = 0; i < sample_count; ++i) {
+        int attempts = 0;
+        while (attempts < 30) {
+            double x = dist(gen) * 2.0 - 1.0; // [-1, 1]
+            double y = dist(gen) * 2.0 - 1.0; // [-1, 1]
+            Vector3 candidate(x, y, 0.0);
+
+            bool valid = true;
+            for (const auto& sample : samples) {
+                if ((candidate - sample).length() < min_distance) {
+                    valid = false;
+                    break;
+                }
+            }
+
+            if (valid) {
+                samples.push_back(candidate);
+                break;
+            }
+            attempts++;
+        }
+    }
+    return samples;
+}
+
+
+// ANTI-ALIASING + DEFOUCS BLUR
+Ray Camera::get_sampled_ray(int i, int j, Vector3 offset) const {
     Vector3 lens_sample = random_point_in_aperture();
 
     Vector3 offset_origin = center + lens_sample;
 
-    Vector3 pixel_sample = pixel00_loc
+    Vector3 pixel_sample = first_pixel
                     + ((i + offset.x()) * pixel_delta_u)
                     + ((j + offset.y()) * pixel_delta_v);
 
     Vector3 focal_target = center + focus_dist * unit_vector(pixel_sample - center);
+    // Vector3 ray_direction = focal_target - offset_origin;
     Vector3 ray_direction = focal_target - offset_origin;
 
     return Ray(offset_origin, ray_direction);
@@ -72,6 +104,8 @@ Ray Camera::get_sampled_ray(int i, int j) const {
 
 
 Radiance Camera::trace_binary(const Ray& r, const Object& world) const {
+    // Check if the ray intersects any object in the scene
+    // if hit, return red color, else return black
     IntersectionRecord rec;
     if (world.intersect(r, Interval(0, infinity), rec)) {
         return Radiance(1,0,0);
@@ -80,7 +114,6 @@ Radiance Camera::trace_binary(const Ray& r, const Object& world) const {
 }
 
 
-// HANDLE 3 CASE, USE APPROXIMATION AS LONG AS IS REFRATIVE
 Radiance Camera::trace_phong(const Ray& r, const Object& world, const Light& lights, int depth) const {
     IntersectionRecord rec;
     Radiance result;
@@ -90,12 +123,11 @@ Radiance Camera::trace_phong(const Ray& r, const Object& world, const Light& lig
         return background;
     }
 
-    // return color(1, 0, 0);
-
     // Compute Blinn-Phong shading at the intersection point
     Vector3 view_dir = unit_vector(-r.direction());
     Radiance local_shading = lights.phong_shading(rec.p, rec.normal, view_dir, rec, world, ambient_light);
 
+    // Compute ambient light contribution
     Radiance ambient = calculate_ambient(*rec.mat_ptr, ambient_light);
 
     // Stop recursion if max depth is reached
@@ -220,7 +252,7 @@ Radiance Camera::trace_path_phong(const Ray& r, const Object& world, const Light
 
     // Russian Roulette termination
     if (depth > 3) {
-        double termination_probability = 0.8;  // Adjust as needed
+        double termination_probability = RR_PROB;  // Adjust as needed
         if (random_double() > termination_probability) {
             return result;  // Terminate ray tracing
         }
@@ -234,7 +266,7 @@ Radiance Camera::trace_path_phong(const Ray& r, const Object& world, const Light
 Radiance Camera::trace_path_brdf(const Ray& r, const Object& world, const Light& lights, int depth) const {
     IntersectionRecord rec;
     Radiance result;
-    Vector3 coefficient = Vector3(1, 1, 1);
+    Vector3 coefficient = Vector3(1, 1, 1); // intitialize the coefficient to 1
 
     Vector3 view_dir = -r.direction();
 
@@ -246,13 +278,15 @@ Radiance Camera::trace_path_brdf(const Ray& r, const Object& world, const Light&
         return background;
     }
 
+    // Compute the BRDF shading at the intersection point
+    FancyBRDF brdf = rec.mat_ptr->build_brdf( rec.normal, rec.u, rec.v);
 
-    FancyBRDF brdf = rec.mat_ptr->build_brdf( rec.normal, rec.dpdu, rec.dpdv);
-
+    // Compute the direct lighting contribution
     Radiance direct = lights.brdf_shading(rec.p, rec.normal, view_dir, brdf, world, coefficient);
 
     Vector3 l;
     Vector3 sample = Vector3(random_double(), random_double(), 0);
+    // Sample the BRDF to get the direction of the reflected ray
     Vector3 weight = brdf.Sample(l,view_dir, sample);
 
     // If the sample weight is negligible, terminate
@@ -268,41 +302,88 @@ Radiance Camera::trace_path_brdf(const Ray& r, const Object& world, const Light&
     // Combine direct and indirect lighting contributions
     result = direct + coefficient * indirect;
 
+    // Russian Roulette termination
+    if (depth > 3) {
+        double termination_probability = RR_PROB;  // Adjust as needed
+        if (random_double() > termination_probability) {
+            return result;  // Terminate ray tracing
+        }
+        result /= termination_probability;  // Weight for unbiased result
+    }
     return result;
+
 }
 
 
 // RENDERING MODES
 
+// std::vector<Radiance> Camera::render_path(const Object& world, Light& lights) {
+//     initialize();
+//     std::vector<Radiance> pixelData(image_width * image_height);
+//     for (int j = 0; j < image_height; j++) {
+//         std::clog << "\rRemaining rows: " << (image_height - j) << ' ' << std::flush;
+//         for (int i = 0; i < image_width; i++) {
+//             Radiance pixel_color(0, 0, 0);
+//             // Multi-sampling loop
+//             for (int sample = 0; sample < samples_per_pixel; ++sample) {
+//                 Ray r = get_sampled_ray(i, j);  // Generate a ray with random sampling
+//                 pixel_color += trace_path(r, world, lights, nbounces);
+//             }
+//             // Average the color of the sampled rays
+//             pixel_color *= (1.0 / samples_per_pixel);
+//             // Apply tone mapping
+//             pixelData[j * image_width + i] = tone_map(pixel_color);
+//         }
+//     }
+//     return pixelData;
+// }
+
+
 std::vector<Radiance> Camera::render_path(const Object& world, Light& lights) {
     initialize();
     std::vector<Radiance> pixelData(image_width * image_height);
+
+    std::vector<Vector3> poisson_samples;
+    if (sampling_method == AntiAliasing::POISSON) {
+        double min_distance = 0.5 / std::sqrt(samples_per_pixel);
+        poisson_samples = generate_poisson_disk_samples(samples_per_pixel, min_distance);
+    }
+
     for (int j = 0; j < image_height; j++) {
-        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        std::clog << "\rRemaining rows: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
             Radiance pixel_color(0, 0, 0);
-            // Multi-sampling loop
             for (int sample = 0; sample < samples_per_pixel; ++sample) {
-                Ray r = get_sampled_ray(i, j);  // Generate a ray with random sampling
+                Vector3 offset;
+                switch (sampling_method) {
+                    case AntiAliasing::RANDOM:
+                        offset = sample_offset();
+                        break;
+                    case AntiAliasing::JITTERED:
+                        offset = jittered_sample(sample);
+                        break;
+                    case AntiAliasing::POISSON:
+                        offset = poisson_samples[sample % poisson_samples.size()];
+                        break;
+                }
+                Ray r = get_sampled_ray(i, j, offset);
                 pixel_color += trace_path(r, world, lights, nbounces);
             }
-            // Average the color of the sampled rays
-            pixel_color *= (1.0 / samples_per_pixel);
-            // Apply tone mapping
-            pixelData[j * image_width + i] = tone_map(pixel_color);
+            pixel_color *= (1.0 / samples_per_pixel); // Average the samples
+            pixelData[j * image_width + i] = tone_map(pixel_color); // Tone mapping
         }
     }
+
     return pixelData;
 }
-
 
 std::vector<Radiance> Camera::render_binary(const Object& world) {
     initialize();
     std::vector<Radiance> pixelData(image_width * image_height);
     for (int j = 0; j < image_height; j++) {
-        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        std::clog << "\rRemaining rows: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
-            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto pixel_center = first_pixel + (i * pixel_delta_u) + (j * pixel_delta_v);
             auto ray_direction = pixel_center - center;
             Ray r(center, ray_direction);
             // Pass `nbounces` to control recursive depth
@@ -317,9 +398,9 @@ std::vector<Radiance> Camera::render_phong(const Object& world, const Light& lig
     initialize();
     std::vector<Radiance> pixelData(image_width * image_height);
     for (int j = 0; j < image_height; j++) {
-        std::clog << "\rScanlines remaining: " << (image_height - j) << ' ' << std::flush;
+        std::clog << "\rRemaining rows: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
-            auto pixel_center = pixel00_loc + (i * pixel_delta_u) + (j * pixel_delta_v);
+            auto pixel_center = first_pixel + (i * pixel_delta_u) + (j * pixel_delta_v);
             auto ray_direction = pixel_center - center;
             Ray r(center, ray_direction);
             // Pass `nbounces` to control recursive depth

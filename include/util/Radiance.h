@@ -7,10 +7,11 @@
 
 using Radiance = Vector3;
 
-inline std::string get_color_string(const Radiance& pixel_color) {
-    auto r = pixel_color.x();
-    auto g = pixel_color.y();
-    auto b = pixel_color.z();
+inline std::string get_color_string(const Radiance& pixel) {
+    // Get the radiance of the pixel
+    auto r = pixel.x();
+    auto g = pixel.y();
+    auto b = pixel.z();
     // Translate the [0,1] component values to the byte range [0,255].
     int rbyte = int(255.999 * r);
     int gbyte = int(255.999 * g);
@@ -27,6 +28,7 @@ inline std::string get_color_string(const Radiance& pixel_color) {
 
 // Linear Tone Mapping
 inline Radiance linear_tone_map(const Radiance& hdr_color, double exposure) {
+    // Map the HDR color to the [0,1] range and apply exposure
     Radiance mapped_color = exposure * hdr_color;
     return Radiance(
         std::min(1.0, mapped_color.x()),
@@ -37,6 +39,7 @@ inline Radiance linear_tone_map(const Radiance& hdr_color, double exposure) {
 
 // Reinhard Tone Mapping
 inline Vector3 reinhard_tone_map(const Vector3& hdr_color, double exposure) {
+    // Apply Reinhard tone mapping
     Vector3 mapped_color = exposure * hdr_color;
     return Vector3(
         mapped_color.x() / (1.0 + mapped_color.x()),
@@ -48,6 +51,7 @@ inline Vector3 reinhard_tone_map(const Vector3& hdr_color, double exposure) {
 
 // Filmic Tone Mapping (ACES Approximation)
 inline Vector3 filmic_tone_map(const Vector3& hdr_color, double exposure) {
+    // Apply filmic tone mapping
     Vector3 mapped_color = exposure * hdr_color;
     const double a = 2.51;
     const double b = 0.03;

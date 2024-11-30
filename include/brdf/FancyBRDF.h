@@ -6,22 +6,15 @@
 #include "brdf/Lambert.h"
 #include "brdf/Microfacet.h"
 
-struct FancyBRDF : BRDF
-{
+// FancyBRDF is a combination of a Lambert diffuse layer and a Microfacet specular layer.
+struct FancyBRDF : BRDF {
+
     FancyBRDF(Vector3 normal, Vector3 albedo, Vector3 reflectance, double roughness) : 
-        normal(normal), albedo(albedo), reflectance(reflectance), alpha(FireflyReduction::GetRoughness(roughness * roughness))
-    {
-    }
+        normal(normal), albedo(albedo),
+        reflectance(reflectance), alpha(roughness * roughness){}
 
     // Evaluate the cosine-weighted brdf
-    //
-    Vector3 Evaluate(Vector3 l, Vector3 v) const override{
-    // This is a combination of a microfacet specular layer with a Lambert diffuse layer
-    // at the bottom. For energy-conservation purposes, only the light that the specular
-    // layer transmits can be used for layers below.
-    //
-    // This can be extended to multiple specular layers pretty easily, but I don't need
-    // to do so at the moment.
+    Vector3 Evaluate(Vector3 l, Vector3 v) const override {
 
         const Vector3 n = normal;
         const Vector3 h = normalize(l + v, n);
@@ -56,7 +49,7 @@ struct FancyBRDF : BRDF
 
         // Random decision for sampling
         if (random_double() < pdf) {
-            FireflyReduction::RegisterBounce(alpha);
+
 
             // Specular reflection
             l = reflect_pm(-v, h);
@@ -64,7 +57,6 @@ struct FancyBRDF : BRDF
 
             return fresnel / pdf * g_term;
         } else {
-            FireflyReduction::RegisterBounce(1.0);
 
             // Diffuse reflection
             l = Lambert::CalculateLightDirection(normal, sample);
@@ -75,18 +67,14 @@ struct FancyBRDF : BRDF
     }
 
     // World-space normal
-    //
-    Vector3 normal = { 0, 0, 1 };
+    Vector3 normal = Vector3(0,0,1);
 
-    // Diffuse layer albedo
-    //
-    Vector3 albedo = { 0, 0, 0 };
+    // Diffuse  albedo
+    Vector3 albedo = Vector3(0,0,0);
 
-    // Specular layer normal reflectance
-    //
-    Vector3 reflectance = { 0, 0, 0 };
+    // Specular normal reflectance
+    Vector3 reflectance = Vector3(0,0,0);
 
-    // Specular layer alpha
-    //
+    // Specular alpha
     double alpha = 0;
 };

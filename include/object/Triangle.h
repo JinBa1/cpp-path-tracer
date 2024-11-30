@@ -7,15 +7,9 @@
 class Triangle : public Object {
   public:
 
-mutable int hit_call_count = 0;
+    mutable uint64_t hit_call_count = 0; // Number of times the intersection test was called
 
-    // Triangle(const point3& v0, const point3& v1, const point3& v2, Material* mat_ptr, bool exclude_from_bvh = false)
-    //     : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
-    //     uv0(Vector3(0,0,0)), uv1(1,0,0), uv2(0,1,0), excluded(exclude_from_bvh) {
-
-    //     }
-
-    Triangle(const point3& v0, const point3& v1, const point3& v2, Material* mat_ptr,
+    Triangle(const Point3& v0, const Point3& v1, const Point3& v2, Material* mat_ptr,
              const Vector3& uv0 = Vector3(0,0,0), const Vector3& uv1= Vector3(1,0,0),
             const Vector3& uv2= Vector3(0,1,0), bool exclude_from_bvh = false)
         : v0(v0), v1(v1), v2(v2), mat_ptr(mat_ptr),
@@ -24,6 +18,7 @@ mutable int hit_call_count = 0;
     bool exclude_from_bvh() const override { return excluded; }
 
     bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const override {
+
         ++hit_call_count;
 
         // Using the Möller–Trumbore algorithm for ray-triangle intersection
@@ -74,12 +69,13 @@ mutable int hit_call_count = 0;
     }
 
     BoundingBox bounding_box() const override {
-        point3 min = point3(
+        // Calculate the bounding box of the triangle
+        Point3 min = Point3(
             std::min({v0.x(), v1.x(), v2.x()}),
             std::min({v0.y(), v1.y(), v2.y()}),
             std::min({v0.z(), v1.z(), v2.z()})
         );
-        point3 max = point3(
+        Point3 max = Point3(
             std::max({v0.x(), v1.x(), v2.x()}),
             std::max({v0.y(), v1.y(), v2.y()}),
             std::max({v0.z(), v1.z(), v2.z()})
@@ -88,11 +84,11 @@ mutable int hit_call_count = 0;
     }
 
   private:
-    point3 v0, v1, v2; // Triangle vertices
+    Point3 v0, v1, v2; // Triangle vertices
     Material* mat_ptr;
     Vector3 uv0, uv1, uv2; // UV coordinates for texture mapping, ignore z componenet
 
-    bool excluded;
+    bool excluded; // Whether the triangle should be excluded from the BVH
 
     void uv_map(double u, double v, double& uv_u, double& uv_v ) const{
         // Interpolate UV coordinates using barycentric coordinates

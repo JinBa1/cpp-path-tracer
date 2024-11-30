@@ -6,7 +6,7 @@
 
 class Vector3 {
   public:
-    double element[3];
+    double element[3]; // x, y, z
 
     Vector3() : element{0,0,0} {}
     Vector3(double e0, double e1, double e2) : element{e0, e1, e2} {}
@@ -49,6 +49,7 @@ class Vector3 {
     }
 
     bool near_zero() const {
+        // Return true if the vector is close to zero in all dimensions.
         const double s = 1e-8;
         for (int i = 0; i < 3; ++i) {
             if (std::fabs(element[i]) >= s) return false;
@@ -57,6 +58,7 @@ class Vector3 {
     }
 
     Vector3& operator*=(const Vector3& v) {
+        // Element-wise multiplication
         element[0] *= v.element[0];
         element[1] *= v.element[1];
         element[2] *= v.element[2];
@@ -64,8 +66,8 @@ class Vector3 {
     }
 };
 
-// point3 is just an alias for Vector3, but useful for geometric clarity in the code.
-using point3 = Vector3;
+// Type aliases for Vector3
+using Point3 = Vector3;
 
 
 // Vector Utility Functions
@@ -122,7 +124,7 @@ inline Vector3 unit_vector(const Vector3& v) {
 }
 
 inline Vector3 perpendicular(const Vector3& v) {
-    // Find a vector not parallel to v
+    // Return a vector perpendicular to the input vector
     if (fabs(v.x()) > fabs(v.z())) {
         return Vector3(-v.y(), v.x(), 0.0);
     } else {
@@ -131,18 +133,21 @@ inline Vector3 perpendicular(const Vector3& v) {
 }
 
 inline Vector3 saturate(const Vector3& v) {
+    // Clamp the input vector to the range [0, 1]
     return Vector3(std::fmax(0.0, std::fmin(v.x(), 1.0)),
                 std::fmax(0.0, std::fmin(v.y(), 1.0)),
                 std::fmax(0.0, std::fmin(v.z(), 1.0)));
 }
 
 inline Vector3 normalize(const Vector3& v, const Vector3 fallback) {
+    // Normalize the input vector, or return the fallback vector if the input is the zero vector
     const double l = v.length();
 
     return l == 0 ? fallback : v / l; 
 }
 
 inline Vector3 normalize(const Vector3& v) {
+    // Normalize the input vector
     const double l = v.length();
 
     return  v / l; 

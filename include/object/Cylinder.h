@@ -8,37 +8,37 @@ class Cylinder : public Object {
 
   public:
 
-  mutable int hit_call_count = 0;
-    Cylinder(const point3& center, const Vector3& axis, double radius, double height, Material* mat_ptr, bool exclude_from_bvh = false)
+  mutable uint64_t hit_call_count = 0;
+    Cylinder(const Point3& center, const Vector3& axis, double radius, double height, Material* mat_ptr, bool exclude_from_bvh = false)
         : center(center), axis(unit_vector(axis)), radius(std::fmax(0, radius)),
          height(std::fmax(0, height)), mat_ptr(mat_ptr), excluded(exclude_from_bvh) {}
 
     bool exclude_from_bvh() const override { return excluded; }
 
-bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const override {
-    ++hit_call_count;
+    bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const override {
+        ++hit_call_count;
 
-    IntersectionRecord temp_rec;
-    bool hit_anything = false;
-    auto closest_so_far = ray_t.max;
-    // Check intersection with the side surface
-    if (hit_cylinder_side(r, Interval(ray_t.min, closest_so_far), temp_rec)) {
-        hit_anything = true;
-        closest_so_far = temp_rec.t;
-        rec = temp_rec; // Update the IntersectionRecord with the closest hit
+        IntersectionRecord temp_rec;
+        bool hit_anything = false;
+        auto closest_so_far = ray_t.max;
+        // Check intersection with the side surface
+        if (hit_cylinder_side(r, Interval(ray_t.min, closest_so_far), temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            rec = temp_rec; // Update the IntersectionRecord with the closest hit
+        }
+        // Check intersection with the top and bottom caps
+        if (hit_cylinder_caps(r, Interval(ray_t.min, closest_so_far), temp_rec)) {
+            hit_anything = true;
+            closest_so_far = temp_rec.t;
+            rec = temp_rec; // Update the IntersectionRecord with the closest hit
+        }
+        return hit_anything;
     }
-    // Check intersection with the top and bottom caps
-    if (hit_cylinder_caps(r, Interval(ray_t.min, closest_so_far), temp_rec)) {
-        hit_anything = true;
-        closest_so_far = temp_rec.t;
-        rec = temp_rec; // Update the IntersectionRecord with the closest hit
-    }
-    return hit_anything;
-}
 
   private:
 
-    point3 center;  // Center of the cylinder (midpoint along the height)
+    Point3 center;  // Center of the cylinder (midpoint along the height)
     Vector3 axis;      // Unit vector along the cylinder's axis
     double radius;  // Radius of the cylinder
     double height;  // Total height of the cylinder
@@ -100,8 +100,8 @@ bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const over
     // Check intersection with the cylinder's top and bottom caps
     bool hit_cylinder_caps(const Ray& r, Interval ray_t, IntersectionRecord& rec) const {
         double half_height = height;
-        point3 top_center = center + half_height * axis;
-        point3 bottom_center = center - half_height * axis;
+        Point3 top_center = center + half_height * axis;
+        Point3 bottom_center = center - half_height * axis;
 
         // Check intersection with the top cap
         if (hit_disk(r, top_center, ray_t, rec, true))
@@ -112,14 +112,14 @@ bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const over
     }
 
     // Check intersection with a disk (cap)
-    bool hit_disk(const Ray& r, const point3& disk_center, Interval ray_t, IntersectionRecord& rec, bool is_top) const {
+    bool hit_disk(const Ray& r, const Point3& disk_center, Interval ray_t, IntersectionRecord& rec, bool is_top) const {
         Vector3 normal = is_top ? axis : -axis; // Use inverted normal for the bottom cap
         double t = dot(disk_center - r.origin(), normal) / dot(r.direction(), normal);
 
         if (!ray_t.surrounds(t))
             return false;
 
-        point3 p = r.at(t);  // Intersection point
+        Point3 p = r.at(t);  // Intersection point
         if ((p - disk_center).length_squared() > radius * radius)
             return false;
 
@@ -144,21 +144,21 @@ bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const over
         Vector3 half_axis = (height / 2) * axis;
 
         // Calculate the top and bottom centers of the cylinder
-        point3 top_center = center + half_axis;
-        point3 bottom_center = center - half_axis;
+        Point3 top_center = center + half_axis;
+        Point3 bottom_center = center - half_axis;
 
         // A radius vector orthogonal to the cylinder's axis
         Vector3 radius_vector = radius * Vector3(1, 1, 1); // Uniform scaling in all directions
 
         // Adjust bounding box to cover the maximum extents
         // The bounding box must encompass the radius at all points
-        point3 min_point = point3(
+        Point3 min_point = Point3(
             std::fmin(top_center.x() - radius, bottom_center.x() - radius),
             std::fmin(top_center.y() - radius, bottom_center.y() - radius),
             std::fmin(top_center.z() - radius, bottom_center.z() - radius)
         );
 
-        point3 max_point = point3(
+        Point3 max_point = Point3(
             std::fmax(top_center.x() + radius, bottom_center.x() + radius),
             std::fmax(top_center.y() + radius, bottom_center.y() + radius),
             std::fmax(top_center.z() + radius, bottom_center.z() + radius)
@@ -199,7 +199,7 @@ bool intersect(const Ray& r, Interval ray_t, IntersectionRecord& rec) const over
         v = tiled_v >= 0 ? tiled_v : tiled_v + 1;
     }
 
-    void uv_map_disk(point3 p,const point3& disk_center, double& u, double& v ) const{
+    void uv_map_disk(Point3 p,const Point3& disk_center, double& u, double& v ) const{
         // Vector3 p_local = rec.p - disk_center; // Point relative to the disk center
         // rec.u = 0.5 + p_local.x() / (2 * radius);
         // rec.v = 0.5 + p_local.z() / (2 * radius);

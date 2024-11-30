@@ -2,30 +2,24 @@
 
 #include "util/Utilities.h"
 
-namespace Microfacet
-{
-	inline Vector3 F(Vector3 f0, double vdoth)
-	{
+namespace Microfacet {
+	
+	inline Vector3 F(Vector3 f0, double vdoth) {
 		// Schlick Fresnel approximation
-		//
 		// F(v, h) = f₀ + (1 - f₀) * (1 - v·h)⁵
 
 		return f0 + (Vector3(1.0,1.0,1.0) - f0) * pow(1 - vdoth, 5);
 	}
 
-	inline double F(double f0, double vdoth)
-	{
+	inline double F(double f0, double vdoth) {
 		// Schlick Fresnel approximation
-		//
 		// F(v, h) = f₀ + (1 - f₀) * (1 - v·h)⁵
 
 		return f0 + (1 - f0) * pow(1 - vdoth, 5);
 	}
 
-	inline double G1(double alpha, double ndotx)
-	{
+	inline double G1(double alpha, double ndotx) {
 		// Smith GGX geometry factor for either shadowing or masking
-		//
 		// G₁(n, x) = (2 n·x) / (n·x + sqrt(α² + (1 - α²)(n·x)²))
 
 		const double aa = alpha * alpha;
@@ -33,19 +27,15 @@ namespace Microfacet
 		return 2 * ndotx / (ndotx + sqrt(aa + (1 - aa) * ndotx * ndotx));
 	}
 
-	inline double G(double alpha, double ndotl, double ndotv)
-	{
+	inline double G(double alpha, double ndotl, double ndotv) {
 		// Smith GGX geometry factor for both shadowing and masking
-		//
 		// G = G₁(n, l) G₁(n, v)
 
 		return G1(alpha, ndotl) * G1(alpha, ndotv);
 	}
 
-	inline double V1(double alpha, double ndotx)
-	{
+	inline double V1(double alpha, double ndotx) {
 		// Smith GGX visibility factor for either shadowing or masking
-		//
 		// V₁(n, x) = 1 / (n·x + sqrt(α² + (1 - α²)(n·x)²)
 
 		const double aa = alpha * alpha;
@@ -53,19 +43,15 @@ namespace Microfacet
 		return 1 / (ndotx + sqrt(aa + (1 - aa) * ndotx * ndotx));
 	}
 
-	inline double V(double alpha, double ndotl, double ndotv)
-	{
+	inline double V(double alpha, double ndotl, double ndotv) {
 		// Smith GGX visibility factor for both shadowing and masking
-		//
 		// V = V₁(n, l) V₁(n, v)
 
 		return V1(alpha, ndotl) * V1(alpha, ndotv);
 	}
 
-	inline double D(double alpha, double ndoth)
-	{
+	inline double D(double alpha, double ndoth) {
 		// Smith GGX normal distribution
-		//
 		// D(h) = α² / (π ((α² - 1) (n·h)² + 1)²)
 
 		const double aa = alpha * alpha;
@@ -75,7 +61,6 @@ namespace Microfacet
 	}
 
 	// Calculate the microfacet normal from the geometry normal, view vector and random sample
-	//
 	inline Vector3 CalculateNormal(const Vector3& v, const Vector3& n, const Vector3& sample, double alpha) {
 		// Generate rotation basis
 		auto make_rotation_basis = [](const Vector3& z) {
