@@ -62,7 +62,7 @@
                             "reflectivity":1.0,
                             "isrefractive":false,
                             "refractiveindex":1.0,
-                            "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm" 
+                            "texture": "../data/textures/leaves.ppm" 
                         } 
                 },
                 {
@@ -81,7 +81,7 @@
                             "reflectivity":1.0,
                             "isrefractive":false,
                             "refractiveindex":1.0,
-                            "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm",
+                            "texture": "../data/textures/leaves.ppm",
                             "uv0": [0.2, 0.8],
                             "uv1": [0.9, 0],
                             "uv2": [0, 0.7]
@@ -120,7 +120,7 @@
                             "reflectivity":1.0,
                             "isrefractive":false,
                             "refractiveindex":1.0,
-                            "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm"
+                            "texture": "../data/textures/leaves.ppm"
 
                         } 
                 },
@@ -139,7 +139,7 @@
                             "reflectivity":1.0,
                             "isrefractive":false,
                             "refractiveindex":1.0,
-                            "texture": "/home/jin/cgr/rt/data/textures/face.ppm",
+                            "texture": "../data/textures/face.ppm",
                             "tile_factor_u" : 3,
                             "tile_factor_v" : 3
                         } 

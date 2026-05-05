@@ -12,7 +12,7 @@ To use the compiled runnable
 $ ./ray_tracer <jsonName> [outputDir] [outputName]
 
 example:
-$ ./ray_tracer /home/jin/cgr/rt/data/jsons/scene.json /home/jin/cgr/rt/output/ scene103
+$ ./ray_tracer ../data/jsons/scene.json ../output/ scene103
 
 
 
@@ -90,7 +90,7 @@ relavant functions: load_texture, get_texture_color, phong_shading, uv_map
 New input field required - "material":
                             { 
                                 ...
-    Path to ppm3 texture ->     "texture": "/home/jin/cgr/rt/data/textures/leaves.ppm",
+    Path to ppm3 texture ->     "texture": "../data/textures/leaves.ppm",
                                 "uv0": [0.2, 0.8],    (optional, traingle only)
                                 "uv1": [0.9, 0],      (optional, traingle only)
                                 "uv2": [0, 0.7],      (optional, traingle only)
