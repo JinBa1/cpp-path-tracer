@@ -45,8 +45,8 @@ A CPU ray tracer and path tracer written in C++17. Parses JSON scene description
 Requirements: CMake 3.10+ and a C++17 compiler (g++ or clang++).
 
 ```bash
-git clone https://github.com/JinBa1/cgrcw2.git
-cd cgrcw2
+git clone https://github.com/JinBa1/cpp-path-tracer.git
+cd cpp-path-tracer
 mkdir build && cd build
 cmake .. && make
 ```
