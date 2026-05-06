@@ -54,18 +54,19 @@ class Camera {
 
     // Tone mapping selector
     Radiance tone_map(const Vector3& hdr_color) const {
-        double exp_exposure = 1.0 - exposure;
+        // Tone mapping exposure: inverted from scene exposure so higher scene exposure = brighter image
+        double tone_exposure = 1.0 - exposure;
         switch (tone_mapper) {
             case ToneMapper::LINEAR:
-                return linear_tone_map(hdr_color, exp_exposure);
+                return linear_tone_map(hdr_color, tone_exposure);
             case ToneMapper::REINHARD:
-                return reinhard_tone_map(hdr_color, exp_exposure);
+                return reinhard_tone_map(hdr_color, tone_exposure);
             case ToneMapper::FILMIC:
-                return filmic_tone_map(hdr_color, exp_exposure);
+                return filmic_tone_map(hdr_color, tone_exposure);
             case ToneMapper::LUMINANCE:
-                return luminance_based_scaling(hdr_color, exp_exposure);
+                return luminance_based_scaling(hdr_color, tone_exposure);
             default:
-                return luminance_based_scaling(hdr_color, exp_exposure);
+                return luminance_based_scaling(hdr_color, tone_exposure);
         }
     }
 
@@ -124,11 +125,9 @@ class Camera {
     Radiance trace_phong(const Ray& r, const Object& world, const Light& lights, int depth) const;
 
     Radiance schlick_blend(Radiance locals, Radiance reflected, Radiance refracted, double eta, double cos_theta_i, double R0) const {
-        // Blend the final radiance using the Schlick approximation
         double fresnel_reflectance = R0 + (1 - R0) * pow(1 - cos_theta_i, 5);
         double fresnel_transmittance = 1 - fresnel_reflectance;
-        double local_weight = std::max(0.0, 1 - fresnel_reflectance - fresnel_transmittance);
-        return  local_weight * locals + fresnel_reflectance * reflected + fresnel_transmittance * refracted;
+        return fresnel_reflectance * reflected + fresnel_transmittance * refracted;
     }
 
     // PATH TRACING

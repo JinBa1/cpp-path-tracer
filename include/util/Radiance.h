@@ -9,9 +9,9 @@ using Radiance = Vector3;
 
 inline std::string get_color_string(const Radiance& pixel) {
     // Get the radiance of the pixel
-    auto r = pixel.x();
-    auto g = pixel.y();
-    auto b = pixel.z();
+    auto r = std::fmax(0.0, std::fmin(1.0, pixel.x()));
+    auto g = std::fmax(0.0, std::fmin(1.0, pixel.y()));
+    auto b = std::fmax(0.0, std::fmin(1.0, pixel.z()));
     // Translate the [0,1] component values to the byte range [0,255].
     int rbyte = int(255.999 * r);
     int gbyte = int(255.999 * g);
@@ -31,9 +31,9 @@ inline Radiance linear_tone_map(const Radiance& hdr_color, double exposure) {
     // Map the HDR color to the [0,1] range and apply exposure
     Radiance mapped_color = exposure * hdr_color;
     return Radiance(
-        std::min(1.0, mapped_color.x()),
-        std::min(1.0, mapped_color.y()),
-        std::min(1.0, mapped_color.z())
+        std::fmax(0.0, std::fmin(1.0, mapped_color.x())),
+        std::fmax(0.0, std::fmin(1.0, mapped_color.y())),
+        std::fmax(0.0, std::fmin(1.0, mapped_color.z()))
     );
 }
 
@@ -42,9 +42,9 @@ inline Vector3 reinhard_tone_map(const Vector3& hdr_color, double exposure) {
     // Apply Reinhard tone mapping
     Vector3 mapped_color = exposure * hdr_color;
     return Vector3(
-        mapped_color.x() / (1.0 + mapped_color.x()),
-        mapped_color.y() / (1.0 + mapped_color.y()),
-        mapped_color.z() / (1.0 + mapped_color.z())
+        std::fmax(0.0, mapped_color.x() / (1.0 + mapped_color.x())),
+        std::fmax(0.0, mapped_color.y() / (1.0 + mapped_color.y())),
+        std::fmax(0.0, mapped_color.z() / (1.0 + mapped_color.z()))
     );
 
 }
@@ -62,9 +62,9 @@ inline Vector3 filmic_tone_map(const Vector3& hdr_color, double exposure) {
         return (x * (a * x + b)) / (x * (c * x + d) + e);
     };
     return Vector3(
-        std::min(1.0, filmic_curve(mapped_color.x())),
-        std::min(1.0, filmic_curve(mapped_color.y())),
-        std::min(1.0, filmic_curve(mapped_color.z()))
+        std::fmax(0.0, std::fmin(1.0, filmic_curve(mapped_color.x()))),
+        std::fmax(0.0, std::fmin(1.0, filmic_curve(mapped_color.y()))),
+        std::fmax(0.0, std::fmin(1.0, filmic_curve(mapped_color.z())))
     );
 }
 

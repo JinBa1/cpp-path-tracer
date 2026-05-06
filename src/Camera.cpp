@@ -192,126 +192,110 @@ Radiance Camera::trace_phong(const Ray& r, const Object& world, const Light& lig
 
 
 Radiance Camera::trace_path_phong(const Ray& r, const Object& world, const Light& lights, int depth) const {
-    // Base case: terminate recursion if depth is zero
     if (depth <= 0) {
-        return Radiance(0, 0, 0);  // No contribution beyond max depth
+        return Radiance(0, 0, 0);
     }
     IntersectionRecord rec;
-    // If the ray misses, return the background color
     if (!world.intersect(r, Interval(0.001, infinity), rec)) {
         return background;
     }
-    // Extract material properties
-    Material* mat = rec.mat_ptr;
-    // Emitted light from the surface (e.g., for light sources)
-    // Radiance emitted = mat->emission;
-    Radiance emitted = Radiance(0,0,0);
 
+    Material* mat = rec.mat_ptr;
+    Radiance emitted = Radiance(0,0,0);
+    Vector3 view_dir = unit_vector(-r.direction());
+    Radiance surface_color = lights.phong_shading(rec.p, rec.normal, view_dir, rec, world, ambient_light);
+
+    // Russian Roulette: check BEFORE recursive traces
+    if (depth > 3) {
+        if (random_double() > RR_PROB) {
+            return emitted;
+        }
+    }
+    double rr_weight = (depth > 3) ? 1.0 / RR_PROB : 1.0;
 
     // Ideal reflection and refraction
     Radiance reflection_color(0, 0, 0);
     Radiance refraction_color(0, 0, 0);
-    // Reflection
     if (mat->is_reflective) {
         Vector3 reflect_dir = reflect_pm(r.direction(), rec.normal);
         Ray reflect_ray(rec.p + 0.001 * reflect_dir, reflect_dir);
         reflection_color = trace_path(reflect_ray, world, lights, depth - 1);
     }
-    // Refraction
     if (mat->is_refractive) {
         double eta = rec.front_face ? (1.0 / mat->refractiveindex) : mat->refractiveindex;
-        // Calculate refraction direction
-        Vector3 refract_dir = refract(unit_vector(r.direction()), rec.normal, eta);
-        Ray refract_ray(rec.p + 0.001 * refract_dir, refract_dir);
-        // Handle total internal reflection
-        if (refract_dir != Vector3(0, 0, 0)) {
+        double cos_theta_i = std::fabs(dot(-unit_vector(r.direction()), rec.normal));
+        double sin_theta_t_sq = eta * eta * (1.0 - cos_theta_i * cos_theta_i);
+
+        if (sin_theta_t_sq > 1.0) {
+            Vector3 reflect_dir = reflect_pm(r.direction(), rec.normal);
+            Ray reflect_ray(rec.p + 0.001 * reflect_dir, reflect_dir);
+            refraction_color = trace_path(reflect_ray, world, lights, depth - 1);
+        } else {
+            Vector3 refract_dir = refract(unit_vector(r.direction()), rec.normal, eta);
+            Ray refract_ray(rec.p + 0.001 * refract_dir, refract_dir);
             refraction_color = trace_path(refract_ray, world, lights, depth - 1);
         }
     }
-    // Combine reflection and refraction using Fresnel weights
-    Vector3 view_dir = unit_vector(-r.direction());
-    Radiance surface_color = lights.phong_shading(rec.p, rec.normal, view_dir, rec, world, ambient_light);  // Surface color or texture
+
     Radiance result = emitted;
     if (mat->is_reflective && mat->is_refractive) {
-        // Schlick's approximation for Fresnel reflectance
         double cos_theta = std::fabs(dot(-unit_vector(r.direction()), rec.normal));
         double R0 = pow((1.0 - mat->refractiveindex) / (1.0 + mat->refractiveindex), 2);
         double reflectance = R0 + (1.0 - R0) * pow(1.0 - cos_theta, 5);
         result += reflectance * reflection_color + (1.0 - reflectance) * refraction_color;
     } else if (mat->is_reflective) {
-        result += reflection_color;
+        result += mat->reflectivity * reflection_color + (1.0 - mat->reflectivity) * surface_color;
     } else if (mat->is_refractive) {
-        result += refraction_color;
+        result += mat->reflectivity * refraction_color + (1.0 - mat->reflectivity) * surface_color;
     } else {
-        // Diffuse surfaces (cosine-weighted hemisphere sampling for indirect lighting)
         Vector3 scatter_dir = random_in_hemisphere(rec.normal);
+        double cos_theta = dot(scatter_dir, rec.normal);
         Ray scattered_ray(rec.p + 0.001 * scatter_dir, scatter_dir);
-        result += surface_color * trace_path(scattered_ray, world, lights, depth - 1);
+        result += 2.0 * cos_theta * surface_color * trace_path(scattered_ray, world, lights, depth - 1);
     }
 
-
-    // Russian Roulette termination
-    if (depth > 3) {
-        double termination_probability = RR_PROB;  // Adjust as needed
-        if (random_double() > termination_probability) {
-            return result;  // Terminate ray tracing
-        }
-        result /= termination_probability;  // Weight for unbiased result
-    }
-    return result;
+    return rr_weight * result;
 }
 
 
 //brdf supported
 Radiance Camera::trace_path_brdf(const Ray& r, const Object& world, const Light& lights, int depth) const {
-    IntersectionRecord rec;
-    Radiance result;
-    Vector3 coefficient = Vector3(1, 1, 1); // intitialize the coefficient to 1
-
-    Vector3 view_dir = -r.direction();
-
     if(depth <=0) {
         return Radiance(0, 0, 0);
     }
-    // If the ray hits nothing, return the background color.
+
+    IntersectionRecord rec;
     if (!world.intersect(r, Interval(0.001, infinity), rec)) {
         return background;
     }
 
-    // Compute the BRDF shading at the intersection point
+    Vector3 view_dir = -r.direction();
+
     FancyBRDF brdf = rec.mat_ptr->build_brdf( rec.normal, rec.u, rec.v);
 
-    // Compute the direct lighting contribution
+    Vector3 coefficient = Vector3(1, 1, 1);
     Radiance direct = lights.brdf_shading(rec.p, rec.normal, view_dir, brdf, world, coefficient);
+
+    // Russian Roulette: check BEFORE recursive trace
+    if (depth > 3) {
+        if (random_double() > RR_PROB) {
+            return direct;
+        }
+    }
+    double rr_weight = (depth > 3) ? 1.0 / RR_PROB : 1.0;
 
     Vector3 l;
     Vector3 sample = Vector3(random_double(), random_double(), 0);
-    // Sample the BRDF to get the direction of the reflected ray
     Vector3 weight = brdf.Sample(l,view_dir, sample);
-
-    // If the sample weight is negligible, terminate
 
     coefficient *= weight;
 
-    // Compute the reflected ray
     Ray scattered_ray(rec.p + 0.001 * l, l);
-
-    // Recursively calculate the indirect contribution
     Radiance indirect = trace_path(scattered_ray, world, lights, depth - 1);
 
-    // Combine direct and indirect lighting contributions
-    result = direct + coefficient * indirect;
+    Radiance result = direct + rr_weight * coefficient * indirect;
 
-    // Russian Roulette termination
-    if (depth > 3) {
-        double termination_probability = RR_PROB;  // Adjust as needed
-        if (random_double() > termination_probability) {
-            return result;  // Terminate ray tracing
-        }
-        result /= termination_probability;  // Weight for unbiased result
-    }
     return result;
-
 }
 
 

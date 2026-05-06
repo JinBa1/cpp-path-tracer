@@ -32,7 +32,7 @@ class PointLight : public Light {
         ) const override {
                 Material mat = *rec.mat_ptr;
                 Vector3 light_dir;
-                Radiance light_intensity = intensity_at(p, light_dir) + ambient_light;
+                Radiance light_intensity = intensity_at(p, light_dir);
                 double shadow = shadow_factor(p, world);
                 // BLINN-PHONG SHADING
 
@@ -48,7 +48,9 @@ class PointLight : public Light {
                 Vector3 halfway = unit_vector(light_dir + view_dir);
                 double spec = pow(std::max(0.0, dot(normal, halfway)), mat.specularexponent);
                 Radiance specular = shadow * mat.ks * mat.specularcolor * light_intensity * spec;
-                return diffuse + specular;
+                // Ambient light should NOT be affected by shadows
+                Radiance ambient_contribution = mat.kd * texture_color * ambient_light;
+                return diffuse + specular + ambient_contribution;
         }
 
 
@@ -67,11 +69,13 @@ class PointLight : public Light {
 
                 if (mat->is_refractive) {
                     // Calculate transmittance based on material properties
-                    double transmittance = 1.0 / mat->refractiveindex; // Simplified model
+                    // Simplified model: no Beer's law absorption
+                    double transmittance = 1.0 / mat->refractiveindex;
                     shadow *= transmittance;
 
                     // Adjust the ray to continue through the refractive object
-                    Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, mat->refractiveindex);
+                    double eta = shadow_rec.front_face ? (1.0 / mat->refractiveindex) : mat->refractiveindex;
+                    Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, eta);
                     shadow_ray = Ray(shadow_rec.p + 0.001 * refract_dir, refract_dir);
                 } else {
                     // Non-refractive object fully or partially blocks the light
@@ -99,7 +103,7 @@ class PointLight : public Light {
             ) const override  {
                 // Calculate the shading contribution from the BRDF
                 double shadow = shadow_factor(p, world);
-                if (shadow == shadow_frac){
+                if (fabs(shadow - shadow_frac) < 1e-10){
                     return Radiance(0, 0, 0); // Skip shadowed points
                 }
 

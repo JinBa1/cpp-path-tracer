@@ -52,7 +52,6 @@ Radiance phong_shading(
 
         // Light intensity from the sampled point
         Radiance light_intensity = intensity_at(p,sample_point,light_dir); // Falloff with distance^2
-        light_intensity += ambient_light; // Add ambient light
 
 
         //BLINN-PHONG SHADING
@@ -75,8 +74,15 @@ Radiance phong_shading(
         total_result += diffuse + specular;
     }
 
-    // Average the accumulated contributions from all samples
-    return total_result / num_samples;
+    // Sample texture color (if any) for ambient contribution
+    Radiance texture_color = mat.diffusecolor;
+    if (mat.has_texture) {
+        texture_color = mat.get_texture_color(rec.u, rec.v);
+    }
+    Radiance ambient_contribution = mat.kd * texture_color * ambient_light;
+
+    // Average the accumulated contributions from all samples + ambient (not affected by shadows)
+    return total_result / num_samples + ambient_contribution;
 }
 
 
@@ -90,11 +96,13 @@ Radiance phong_shading(
     ) const override {
         // Calculate the shading contribution from the area light
         Radiance total_result(0, 0, 0); // Accumulator for all sample contributions
+        double area = width * height;
+        Vector3 light_normal = unit_vector(cross(u, v));
 
         for (int i = 0; i < num_samples; ++i) {
             // Sample a point on the area light's surface
             Point3 sample_point = random_sample_on_surface();
-            Vector3 light_dir = unit_vector(sample_point - p);
+            Vector3 light_dir;
 
             // Compute shadow factor for the sampled light point
             double shadow = shadow_factor_from_sample(p, sample_point, world);
@@ -103,13 +111,21 @@ Radiance phong_shading(
             }
 
             // Compute light intensity from the sampled point
-            Radiance light_intensity = intensity; // Falloff with distance^2
+            Radiance light_intensity = intensity_at(p, sample_point, light_dir); // Falloff with distance^2
 
             // Evaluate the BRDF for the given light and view directions
             Vector3 brdf_weight = brdf.Evaluate(light_dir, view_dir);
 
+            // Uniform area sampling: 1 / area. intensity_at() already includes the
+            // distance falloff, so only the light-facing cosine and area remain here.
+            double cos_light = std::max(0.0, dot(light_normal, -light_dir));
+            if (cos_light < 1e-8) {
+                continue; // Light sample faces away from the shaded point
+            }
+            double area_weight = area * cos_light;
+
             // Accumulate the weighted contribution from this sample
-            total_result += shadow * light_intensity * brdf_weight * coefficient;
+            total_result += shadow * light_intensity * brdf_weight * coefficient * area_weight;
         }
 
         // Average the accumulated contributions
@@ -145,11 +161,13 @@ private:
 
             if (mat->is_refractive) {
                 // Calculate transmittance based on material properties
-                double transmittance = 1.0 / mat->refractiveindex; // Simplified model
+                // Simplified model: no Beer's law absorption
+                double transmittance = 1.0 / mat->refractiveindex;
                 shadow *= transmittance;
 
                 // Adjust the ray to continue through the refractive object
-                Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, mat->refractiveindex);
+                    double eta = shadow_rec.front_face ? (1.0 / mat->refractiveindex) : mat->refractiveindex;
+                    Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, eta);
                 shadow_ray = Ray(shadow_rec.p + 0.001 * refract_dir, refract_dir);
             } else {
                 // Non-refractive object fully or partially blocks the light
