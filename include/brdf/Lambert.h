@@ -12,7 +12,7 @@ namespace Lambert {
                 // Calculate the light direction for importance sampling
         inline Vector3 CalculateLightDirection(Vector3 n, Vector3 sample) {	
 
-                const double phi = 2 * M_PI * sample.y();
+                const double phi = 2 * pi * sample.y();
                 const double cos_theta = sqrt(sample.x());
                 const double sin_theta = sqrt(1.0 - sample.x());
 

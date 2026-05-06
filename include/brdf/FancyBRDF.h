@@ -43,8 +43,8 @@ struct FancyBRDF : BRDF {
         Vector3 fresnel = Microfacet::F(reflectance, std::max(0.0, dot(v, h)));
 
         // Probability densities
-        double ps = fresnel.length();
-        double pd = albedo.length();
+        double ps = (fresnel.x() + fresnel.y() + fresnel.z()) / 3.0;
+        double pd = (albedo.x() + albedo.y() + albedo.z()) / 3.0;
         double pdf = ps / (ps + pd);
 
         // Random decision for sampling

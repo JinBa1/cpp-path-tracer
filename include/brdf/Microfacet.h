@@ -72,7 +72,7 @@ namespace Microfacet {
 
 		auto [tangent, bitangent] = make_rotation_basis(n);
 
-		// Transform to geometry space
+		// Transform view to geometry (stretched) space
 		Vector3 vg = Vector3(dot(v, tangent), dot(v, bitangent), dot(v, n));
 		double alpha_vg_x = alpha * vg.x();
 		double alpha_vg_y = alpha * vg.y();
@@ -91,9 +91,9 @@ namespace Microfacet {
 
 		double phi;
 		if (rb < prob_blue) {
-			phi = rb / prob_blue * M_PI;
+			phi = rb / prob_blue * pi;
 		} else {
-			phi = M_PI + (rb - prob_blue) / prob_green * M_PI;
+			phi = pi + (rb - prob_blue) / prob_green * pi;
 		}
 
 		double radius = sqrt(ra);
@@ -101,16 +101,9 @@ namespace Microfacet {
 		double y = radius * sin(phi) * (rb < prob_blue ? area_blue : area_green);
 		double z = sqrt(std::max(0.0, 1.0 - x * x - y * y));
 
-		// Transform from disk space to geometry space
-		Vector3 local_m = Vector3(x, y, z);
-		Vector3 transformed_m = Vector3(dot(local_m, tangent), dot(local_m, bitangent), z);
-		Vector3 scaled_m = Vector3(alpha * transformed_m.x(), alpha * transformed_m.y(), std::max(0.0, transformed_m.z()));
-
-		// Transform to world space
-		return unit_vector(Vector3(
-			dot(scaled_m, tangent),
-			dot(scaled_m, bitangent),
-			dot(scaled_m, n)
-		));
+		// Undo stretch and transform to world space
+		Vector3 m_unstretched(x / alpha, y / alpha, z);
+		m_unstretched = unit_vector(m_unstretched);
+		return m_unstretched.x() * tangent + m_unstretched.y() * bitangent + m_unstretched.z() * n;
 	}
 }
