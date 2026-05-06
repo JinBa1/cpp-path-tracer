@@ -12,6 +12,7 @@
 #include "object/Triangle.h"
 
 #include <json.hpp>
+#include <vector>
 
 using json = nlohmann::json;
 
@@ -19,6 +20,9 @@ class Parser {
     public:
 
     Parser() = default;
+    ~Parser() {
+        for (auto* m : materials_) delete m;
+    }
 
     // Main function to parse the scene, includes reading the file
     void parse_scene(const std::string& inputDir, const std::string& jsonName, ObjectList& world, LightList& lights, Camera& cam) {
@@ -39,6 +43,8 @@ class Parser {
     }
 
     private:
+
+    std::vector<Material*> materials_;
 
     void parse_scene(const json& scene_data, ObjectList& world, LightList& lights, Camera& cam) {
         std::string mode = scene_data["rendermode"];
@@ -150,6 +156,7 @@ class Parser {
             std::string type = shape_data["type"];
 
             auto mat = new Material();
+            materials_.push_back(mat);
             bool excluded = false;
             Vector3 uv0 = Vector3(0,0,0);
             Vector3 uv1 = Vector3(1,0,0);

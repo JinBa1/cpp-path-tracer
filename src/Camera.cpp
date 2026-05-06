@@ -294,7 +294,7 @@ Radiance Camera::trace_path_brdf(const Ray& r, const Object& world, const Light&
     coefficient *= weight;
 
     // Compute the reflected ray
-    Ray scattered_ray(rec.p, l);
+    Ray scattered_ray(rec.p + 0.001 * l, l);
 
     // Recursively calculate the indirect contribution
     Radiance indirect = trace_path(scattered_ray, world, lights, depth - 1);

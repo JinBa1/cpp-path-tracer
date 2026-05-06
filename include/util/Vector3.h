@@ -34,6 +34,10 @@ class Vector3 {
     }
 
     Vector3& operator/=(double t) {
+        if (fabs(t) < 1e-12) {
+            element[0] = element[1] = element[2] = 0;
+            return *this;
+        }
         return *this *= 1/t;
     }
 
@@ -97,6 +101,7 @@ inline Vector3 operator*(const Vector3& v, double t) {
 }
 
 inline Vector3 operator/(const Vector3& v, double t) {
+    if (fabs(t) < 1e-12) return Vector3(0,0,0);
     return (1/t) * v;
 }
 
@@ -120,6 +125,7 @@ inline Vector3 cross(const Vector3& u, const Vector3& v) {
 }
 
 inline Vector3 unit_vector(const Vector3& v) {
+    if (v.length_squared() < 1e-12) return Vector3(0,0,0);
     return v / v.length();
 }
 
@@ -149,7 +155,7 @@ inline Vector3 normalize(const Vector3& v, const Vector3 fallback) {
 inline Vector3 normalize(const Vector3& v) {
     // Normalize the input vector
     const double l = v.length();
-
+    if (l < 1e-12) return Vector3(0,0,0);
     return  v / l; 
 }
 

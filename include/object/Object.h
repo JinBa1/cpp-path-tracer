@@ -11,14 +11,14 @@
 class IntersectionRecord {
   // Record the information of the intersection point
   public:
-    Point3 p;         // Intersection point coordinate
-    Vector3 normal;   // Normal vector at the intersection point
-    double t;         // Ray parameter at the intersection point
-    bool front_face;  // True if the ray hits the front face of the object
+    Point3 p{0,0,0};         // Intersection point coordinate
+    Vector3 normal{0,0,0};   // Normal vector at the intersection point
+    double t = 0;            // Ray parameter at the intersection point
+    bool front_face = false; // True if the ray hits the front face of the object
 
-    double u, v; // UV coordinates for texture mapping
+    double u = 0, v = 0; // UV coordinates for texture mapping
 
-    Material* mat_ptr; // Pointer to the material of the object
+    Material* mat_ptr = nullptr; // Pointer to the material of the object
 
     void set_face_normal(const Ray& r, const Vector3& outward_normal) {
         // Sets the hit record normal vector.

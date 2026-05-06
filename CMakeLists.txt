@@ -17,3 +17,22 @@ add_executable(ray_tracer ${SOURCES})
 
 # Add optimization flag for ray_tracer target
 target_compile_options(ray_tracer PRIVATE -O1)
+
+# Optional sanitizer flags (ASAN + UBSAN combined)
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+option(ENABLE_UBSAN "Enable UndefinedBehaviorSanitizer" OFF)
+option(ENABLE_TESTING "Enable CTest" OFF)
+
+if(ENABLE_ASAN)
+    target_compile_options(ray_tracer PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+    target_link_options(ray_tracer PRIVATE -fsanitize=address)
+endif()
+
+if(ENABLE_UBSAN)
+    target_compile_options(ray_tracer PRIVATE -fsanitize=undefined)
+    target_link_options(ray_tracer PRIVATE -fsanitize=undefined)
+endif()
+
+if(ENABLE_TESTING)
+    enable_testing()
+endif()

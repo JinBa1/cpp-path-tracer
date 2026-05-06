@@ -53,6 +53,7 @@ class Cylinder : public Object {
         Vector3 oc_proj = oc - dot(oc, axis) * axis;                      // Origin offset perpendicular to axis
 
         double a = d_proj.length_squared();
+        if (a < 1e-12) return false;  // Ray parallel to cylinder axis
         double half_b = dot(d_proj, oc_proj);
         double c = oc_proj.length_squared() - radius * radius;
 
@@ -77,7 +78,7 @@ class Cylinder : public Object {
         double axis_proj = dot(to_p, axis);  // Projection of the hit point along the axis
 
         // Check if the intersection is within the height of the cylinder
-        double half_height = height;
+        double half_height = height / 2.0;
         if (axis_proj < -half_height || axis_proj > half_height)
             return false;
 
@@ -99,7 +100,7 @@ class Cylinder : public Object {
 
     // Check intersection with the cylinder's top and bottom caps
     bool hit_cylinder_caps(const Ray& r, Interval ray_t, IntersectionRecord& rec) const {
-        double half_height = height;
+        double half_height = height / 2.0;
         Point3 top_center = center + half_height * axis;
         Point3 bottom_center = center - half_height * axis;
 
@@ -113,8 +114,10 @@ class Cylinder : public Object {
 
     // Check intersection with a disk (cap)
     bool hit_disk(const Ray& r, const Point3& disk_center, Interval ray_t, IntersectionRecord& rec, bool is_top) const {
-        Vector3 normal = is_top ? axis : -axis; // Use inverted normal for the bottom cap
-        double t = dot(disk_center - r.origin(), normal) / dot(r.direction(), normal);
+        Vector3 normal = is_top ? axis : -axis;
+        double denom = dot(r.direction(), normal);
+        if (fabs(denom) < 1e-12) return false;
+        double t = dot(disk_center - r.origin(), normal) / denom;
 
         if (!ray_t.surrounds(t))
             return false;
