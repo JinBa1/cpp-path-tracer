@@ -93,7 +93,8 @@ void Node::sah_splits(std::vector<shared_ptr<Object>>& objects, size_t start, si
             double right_area = right_boxes[i - start - 1].surface_area();
             size_t left_count = i - start;
             size_t right_count = end - i;
-            double cost = left_area * left_count + right_area * right_count;
+            double parent_area = overall_bbox.surface_area();
+            double cost = (left_area * left_count + right_area * right_count) / parent_area;
             if (cost < best_cost) {
                 best_cost = cost;
                 best_axis = axis;

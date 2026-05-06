@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: sudo apt-get update && sudo apt-get install -y cmake g++
+
+      - name: Configure
+        run: cmake -B build -DENABLE_ASAN=ON -DENABLE_UBSAN=ON -DENABLE_TESTING=ON
+
+      - name: Build
+        run: cmake --build build
+
+      - name: Run tests
+        run: cd build && ctest --output-on-failure
+
+      - name: Sanitizer smoke test
+        run: |
+          mkdir -p /tmp/ci-qa
+          ./build/ray_tracer TestSuite/phong_scene.json /tmp/ci-qa/ test

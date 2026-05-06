@@ -47,6 +47,10 @@ class Parser {
     std::vector<Material*> materials_;
 
     void parse_scene(const json& scene_data, ObjectList& world, LightList& lights, Camera& cam) {
+        if (!scene_data.contains("rendermode")) {
+            std::cerr << "Error: Missing required field 'rendermode'" << std::endl;
+            throw std::runtime_error("Missing required field 'rendermode'.");
+        }
         std::string mode = scene_data["rendermode"];
         if (mode == "binary") {
             cam.render_mode = RenderMode::BINARY;
@@ -54,6 +58,9 @@ class Parser {
             cam.render_mode = RenderMode::PHONG;
         } else if (mode == "path") {
             cam.render_mode = RenderMode::PATH;
+        } else {
+            std::cerr << "Error: Invalid rendermode '" << mode << "'. Must be 'binary', 'phong', or 'path'." << std::endl;
+            throw std::runtime_error("Invalid rendermode.");
         }
 
 
@@ -74,7 +81,26 @@ class Parser {
         }
 
         // Parse camera
+        if (!scene_data.contains("camera")) {
+            std::cerr << "Error: Missing required field 'camera'" << std::endl;
+            throw std::runtime_error("Missing required field 'camera'.");
+        }
         auto camera_data = scene_data["camera"];
+
+        if (!camera_data.contains("width") || !camera_data.contains("height")) {
+            std::cerr << "Error: Missing required camera fields 'width' and/or 'height'" << std::endl;
+            throw std::runtime_error("Missing required camera fields.");
+        }
+        if (camera_data["width"].get<int>() <= 0 || camera_data["height"].get<int>() <= 0) {
+            std::cerr << "Error: Camera width and height must be positive integers" << std::endl;
+            throw std::runtime_error("Invalid camera dimensions.");
+        }
+
+        if (!camera_data.contains("fov")) {
+            std::cerr << "Error: Missing required camera field 'fov'" << std::endl;
+            throw std::runtime_error("Missing required camera field 'fov'.");
+        }
+
         cam.image_width = camera_data["width"];
         cam.image_height = camera_data["height"];
         cam.lookfrom = Point3(camera_data["position"][0], camera_data["position"][1], camera_data["position"][2]);
@@ -235,6 +261,11 @@ class Parser {
                     uv0, uv1, uv2,
                     excluded
                 ));
+            } else {
+                std::cerr << "Warning: Unknown shape type '" << type << "', skipping." << std::endl;
+                delete mat;
+                materials_.pop_back();
+                continue;
             }
             // mat->print_material(); // Print material properties
         }

@@ -115,7 +115,15 @@ class Material {
             // Read pixel data
             for (int i = 0; i < texture_data.size(); i++) {
                 int pixel_value;
-                file >> pixel_value;
+                if (!(file >> pixel_value)) {
+                    std::cerr << "Warning: truncated or invalid texture file: " << filename << std::endl;
+                    has_texture = false;
+                    texture_data.clear();
+                    texture_width = 0;
+                    texture_height = 0;
+                    return;
+                }
+                pixel_value = std::max(0, std::min(pixel_value, max_val));
                 texture_data[i] = static_cast<uint8_t>(pixel_value);
             }
 
@@ -152,7 +160,7 @@ inline double GGX_D(const Vector3& h, const Vector3& n, double roughness) {
     double alpha2 = alpha * alpha;
     double NdotH = std::max(dot(n, h), 0.0);
     double denom = std::max((NdotH * NdotH * (alpha2 - 1) + 1), static_cast<double> (std::numeric_limits<double>::epsilon()));
-    return alpha2 / (M_PI * denom * denom);
+    return alpha2 / (pi * denom * denom);
 }
 
 inline Radiance fresnel_schlick(double cosTheta, const Radiance& F0) {
@@ -178,7 +186,7 @@ inline Vector3 sample_ggx_halfway(const Vector3& normal, double roughness) {
     double alpha = std::max(roughness * roughness, 0.0001);
 
     // Compute spherical coordinates
-    double phi = 2.0 * M_PI * r1; // Azimuthal angle
+    double phi = 2.0 * pi * r1; // Azimuthal angle
     double cos_theta = std::sqrt((1.0 - r2) / (1.0 + (alpha * alpha - 1.0) * r2));
     double sin_theta = std::sqrt(1.0 - cos_theta * cos_theta);
 

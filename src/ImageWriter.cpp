@@ -11,7 +11,7 @@ bool ImageWriter::validateParameters() const {
         std::cerr << "Error: Width and height must be positive." << std::endl;
         return false;
     }
-    if (pixelData.size() != static_cast<size_t>(width * height)) {
+    if (pixelData.size() != static_cast<size_t>(width) * static_cast<size_t>(height)) {
         std::cerr << "Error: Pixel data size does not match width and height." << std::endl;
         return false;
     }

@@ -4,6 +4,7 @@
 #include <fstream>
 #include <vector>
 #include <chrono>
+#include <iomanip>
 #include "Camera.h"
 // #include "object/Object.h"
 #include "object/ObjectList.h"

@@ -172,15 +172,15 @@ class Cylinder : public Object {
 
     void uv_map_side(Vector3 outward_normal, double axis_proj, double& u, double& v ) const{
         // double theta = std::atan2(outward_normal.z(), outward_normal.x());
-        // rec.u = 0.5 + theta / (2 * M_PI);
+        // rec.u = 0.5 + theta / (2 * pi);
         // rec.v = 0.5 + axis_proj / height; // Map height proportionally to [0, 1]
         // Compute base UV coordinates
         double theta = std::atan2(outward_normal.z(), outward_normal.x());
-        double base_u = 0.5 + theta / (2 * M_PI);  // Map to [0, 1]
+        double base_u = 0.5 + theta / (2 * pi);  // Map to [0, 1]
         double base_v = 0.5 + axis_proj / height;  // Map height proportionally to [0, 1]
 
         // Dynamic scaling based on texture aspect ratio
-        double ideal_aspect_ratio = (2.0 * M_PI * radius) / height;
+        double ideal_aspect_ratio = (2.0 * pi * radius) / height;
         double texture_aspect_ratio = static_cast<double>(mat_ptr->texture_width) / mat_ptr->texture_height;
 
         double scale_factor_u = 1.0;

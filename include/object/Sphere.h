@@ -71,8 +71,8 @@ class Sphere : public Object {
 
     void uv_map(Vector3 outward_normal, double& u, double& v ) const{
         // Calculate base UV coordinates (equirectangular mapping)
-        double base_u = 0.5 + std::atan2(outward_normal.z(), outward_normal.x()) / (2 * M_PI);
-        double base_v = 1.0 - std::asin(outward_normal.y()) / M_PI;
+        double base_u = 0.5 + std::atan2(outward_normal.z(), outward_normal.x()) / (2 * pi);
+        double base_v = 1.0 - std::asin(outward_normal.y()) / pi;
 
         // Adjust for texture scaling and tiling
         double scale_factor_u = 1.0;
