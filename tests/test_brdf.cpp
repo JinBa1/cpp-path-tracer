@@ -249,12 +249,13 @@ TEST_CASE("FancyBRDF::Sample weight is finite", "[brdf][fancy]") {
     }
 }
 
-TEST_CASE("FancyBRDF energy conservation via Monte Carlo integration", "[brdf][fancy]") {
-    // Monte Carlo estimate of ∫ f(l,v) cos(θ_l) dω_l should be bounded.
+TEST_CASE("FancyBRDF energy conservation (moderate roughness)", "[brdf][fancy]") {
+    // Monte Carlo estimate of ∫ f(l,v) cos(θ_l) dω_l for moderate roughness.
     // FancyBRDF::Evaluate returns the cosine-weighted BRDF already.
-    // We approximate the integral using uniform hemisphere sampling.
+    // Uniform hemisphere sampling gives low variance for wide GGX lobes.
+    // True integral is ≤ 1.0 per channel; 1.1 gives 10% margin.
     Vector3 normal(0, 0, 1);
-    double roughness = GENERATE(0.1, 0.5, 1.0);
+    double roughness = GENERATE(0.5, 1.0);
     Vector3 albedo = GENERATE(
         Vector3(0.5, 0.5, 0.5),
         Vector3(1.0, 0.0, 0.0),
@@ -279,9 +280,44 @@ TEST_CASE("FancyBRDF energy conservation via Monte Carlo integration", "[brdf][f
     }
     integral = integral * (2.0 * pi / N);
 
-    // The total reflected energy should be bounded.
-    // For a physically plausible BRDF: each channel <= 2.0 (generous bound
-    // accounting for combined diffuse+specular layers with non-energy-tight model).
+    CHECK(integral.x() < 1.1);
+    CHECK(integral.y() < 1.1);
+    CHECK(integral.z() < 1.1);
+    CHECK(is_finite_vec(integral));
+}
+
+TEST_CASE("FancyBRDF boundedness smoke (all roughness)", "[brdf][fancy]") {
+    // Smoke test: verify Evaluate stays bounded for all roughness values.
+    // Glossy roughness (0.1 → alpha=0.01) produces narrow GGX spikes that
+    // cause high variance under uniform hemisphere sampling. Using N=100000
+    // to keep SE manageable (~0.14 worst case). This catches gross bugs
+    // (NaN, infinity, wild energy gain) but does NOT test energy conservation.
+    Vector3 normal(0, 0, 1);
+    double roughness = GENERATE(0.1, 0.5, 1.0);
+    Vector3 albedo = GENERATE(
+        Vector3(0.5, 0.5, 0.5),
+        Vector3(1.0, 0.0, 0.0),
+        Vector3(0.2, 0.8, 0.4)
+    );
+    Vector3 reflectance = GENERATE(
+        Vector3(0.0, 0.0, 0.0),
+        Vector3(0.5, 0.5, 0.5),
+        Vector3(1.0, 1.0, 1.0)
+    );
+
+    FancyBRDF brdf(normal, albedo, reflectance, roughness);
+    Vector3 v = make_direction(normal, 0.5);
+
+    const int N = 100000;
+    Vector3 integral(0, 0, 0);
+
+    for (int i = 0; i < N; ++i) {
+        auto [l, cos_theta] = uniform_hemisphere_sample(normal);
+        Vector3 eval = brdf.Evaluate(l, v);
+        integral += eval;
+    }
+    integral = integral * (2.0 * pi / N);
+
     CHECK(integral.x() < 2.1);
     CHECK(integral.y() < 2.1);
     CHECK(integral.z() < 2.1);
