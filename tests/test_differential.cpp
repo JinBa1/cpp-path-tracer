@@ -26,7 +26,7 @@ static int run_renderer(const std::string& scene,
     // Scene paths are relative to build/ → ../tests/fixtures/...
     std::string cmd =
         "./ray_tracer " + scene + " " + OUTPUT_DIR + " " + output_name +
-        " >/dev/null 2>&1";
+        " >/dev/null";
 
     int ret = std::system(cmd.c_str());
     if (WIFEXITED(ret))

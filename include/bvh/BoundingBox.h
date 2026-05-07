@@ -2,6 +2,7 @@
 #define BOUNDINGBOX_H
 
 #include"util/Utilities.h"
+#include <cassert>
 
 class BoundingBox {
   public:
@@ -32,9 +33,10 @@ class BoundingBox {
     }
 
     const Interval& axis_interval(int n) const {
-        // Return the interval for the specified axis
-        static const Interval* axes[] = { &x, &y, &z };
-        return *axes[n];
+        assert(n >= 0 && n < 3);
+        if (n == 1) return y;
+        if (n == 2) return z;
+        return x;
     }
 
     bool intersect(const Ray& r, Interval ray_t) const {
