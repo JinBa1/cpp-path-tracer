@@ -41,7 +41,7 @@ class Cylinder : public Object {
     Point3 center;  // Center of the cylinder (midpoint along the height)
     Vector3 axis;      // Unit vector along the cylinder's axis
     double radius;  // Radius of the cylinder
-    double height;  // Total height of the cylinder
+    double height;  // Extent from center along axis (half-height; total height = 2 × height)
     Material* mat_ptr;
 
     bool excluded;
@@ -78,7 +78,7 @@ class Cylinder : public Object {
         double axis_proj = dot(to_p, axis);  // Projection of the hit point along the axis
 
         // Check if the intersection is within the height of the cylinder
-        double half_height = height / 2.0;
+        double half_height = height;
         if (axis_proj < -half_height || axis_proj > half_height)
             return false;
 
@@ -100,7 +100,7 @@ class Cylinder : public Object {
 
     // Check intersection with the cylinder's top and bottom caps
     bool hit_cylinder_caps(const Ray& r, Interval ray_t, IntersectionRecord& rec) const {
-        double half_height = height / 2.0;
+        double half_height = height;
         Point3 top_center = center + half_height * axis;
         Point3 bottom_center = center - half_height * axis;
 
@@ -143,8 +143,8 @@ class Cylinder : public Object {
     }
 
     BoundingBox bounding_box() const override {
-        // Half-axis vector scaled to half the cylinder height
-        Vector3 half_axis = (height / 2) * axis;
+        // Half-axis vector: height is the extent from center along the axis
+        Vector3 half_axis = height * axis;
 
         // Calculate the top and bottom centers of the cylinder
         Point3 top_center = center + half_axis;
