@@ -29,7 +29,7 @@ if(ENABLE_ASAN)
 endif()
 
 if(ENABLE_UBSAN)
-    target_compile_options(ray_tracer PRIVATE -fsanitize=undefined)
+    target_compile_options(ray_tracer PRIVATE -fsanitize=undefined -fno-sanitize-recover=undefined)
     target_link_options(ray_tracer PRIVATE -fsanitize=undefined)
 endif()
 
@@ -41,13 +41,25 @@ if(ENABLE_TESTING)
         Catch2
         GIT_REPOSITORY https://github.com/catchorg/Catch2.git
         GIT_TAG v3.5.2
+        GIT_SHALLOW TRUE
     )
     FetchContent_MakeAvailable(Catch2)
 
     file(GLOB TEST_SOURCES "tests/*.cpp")
     add_executable(ray_tracer_tests ${TEST_SOURCES})
     target_link_libraries(ray_tracer_tests PRIVATE Catch2::Catch2WithMain)
+
+    if(ENABLE_ASAN)
+        target_compile_options(ray_tracer_tests PRIVATE -fsanitize=address -fno-omit-frame-pointer)
+        target_link_options(ray_tracer_tests PRIVATE -fsanitize=address)
+    endif()
+
+    if(ENABLE_UBSAN)
+        target_compile_options(ray_tracer_tests PRIVATE -fsanitize=undefined -fno-sanitize-recover=undefined)
+        target_link_options(ray_tracer_tests PRIVATE -fsanitize=undefined)
+    endif()
+
     include(CTest)
     include(Catch)
-    catch_discover_tests(ray_tracer_tests)
+    catch_discover_tests(ray_tracer_tests PROPERTIES TIMEOUT 120)
 endif()

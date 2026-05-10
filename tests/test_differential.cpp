@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
+#include <cmath>
 #include <cstdlib>
 #include <cstdio>
 #include <string>
@@ -17,16 +18,19 @@ namespace fs = std::filesystem;
 
 static const std::string OUTPUT_DIR = "/tmp/diff-test/";
 
-// Run the renderer and return its exit code (0–255), or -1 on signal/odd status.
 static int run_renderer(const std::string& scene,
-                        const std::string& output_name) {
+                        const std::string& output_name,
+                        int timeout_seconds = 30) {
     fs::create_directories(OUTPUT_DIR);
 
-    // Binary is at ./ray_tracer relative to build/ (ctest working dir).
-    // Scene paths are relative to build/ → ../tests/fixtures/...
+    auto out_path = OUTPUT_DIR + output_name + ".ppm";
+    fs::remove(out_path);
+
+    auto log_path = OUTPUT_DIR + output_name + ".log";
     std::string cmd =
+        "timeout -k 5s " + std::to_string(timeout_seconds) + "s " +
         "./ray_tracer " + scene + " " + OUTPUT_DIR + " " + output_name +
-        " >/dev/null";
+        " >" + log_path + " 2>&1";
 
     int ret = std::system(cmd.c_str());
     if (WIFEXITED(ret))
@@ -34,8 +38,15 @@ static int run_renderer(const std::string& scene,
     return -1;
 }
 
-// Parse a PPM P3 file and return pixel values as a flat vector of ints.
-// Skips comments (lines starting with #).
+static std::string read_log(const std::string& output_name) {
+    auto log_path = OUTPUT_DIR + output_name + ".log";
+    std::ifstream f(log_path);
+    if (!f.is_open()) return "(no log)";
+    std::ostringstream ss;
+    ss << f.rdbuf();
+    return ss.str();
+}
+
 static bool parse_ppm(const std::string& path,
                       int& width, int& height,
                       std::vector<int>& pixels) {
@@ -46,7 +57,6 @@ static bool parse_ppm(const std::string& path,
     f >> magic;
     if (magic != "P3") return false;
 
-    // Skip comments
     std::string line;
     while (f.peek() == '\n' || f.peek() == '#') {
         if (f.peek() == '#') {
@@ -68,22 +78,46 @@ static bool parse_ppm(const std::string& path,
     return !pixels.empty();
 }
 
-// Collect TestSuite scene paths (../TestSuite/*.json relative to build/).
-static std::vector<std::string> get_testsuite_scenes() {
-    std::vector<std::string> scenes;
-    const fs::path ts_dir = "../TestSuite";
-    if (!fs::exists(ts_dir)) return scenes;
+static void require_valid_ppm(const std::string& output_name, int expected_w, int expected_h) {
+    auto path = OUTPUT_DIR + output_name + ".ppm";
+    REQUIRE(fs::exists(path));
+    REQUIRE(fs::file_size(path) > 0);
 
-    for (const auto& entry : fs::directory_iterator(ts_dir)) {
-        if (entry.path().extension() == ".json") {
-            scenes.push_back(entry.path().string());
-        }
+    int w, h;
+    std::vector<int> pixels;
+    REQUIRE(parse_ppm(path, w, h, pixels));
+
+    REQUIRE(w == expected_w);
+    REQUIRE(h == expected_h);
+    REQUIRE(static_cast<int>(pixels.size()) == 3 * w * h);
+
+    for (int v : pixels) {
+        REQUIRE(v >= 0);
+        REQUIRE(v <= 255);
     }
-    return scenes;
+}
+
+static void require_valid_ppm_any(const std::string& output_name) {
+    auto path = OUTPUT_DIR + output_name + ".ppm";
+    REQUIRE(fs::exists(path));
+    REQUIRE(fs::file_size(path) > 0);
+
+    int w, h;
+    std::vector<int> pixels;
+    REQUIRE(parse_ppm(path, w, h, pixels));
+
+    REQUIRE(w > 0);
+    REQUIRE(h > 0);
+    REQUIRE(static_cast<int>(pixels.size()) == 3 * w * h);
+
+    for (int v : pixels) {
+        REQUIRE(v >= 0);
+        REQUIRE(v <= 255);
+    }
 }
 
 // ---------------------------------------------------------------------------
-// Tests
+// Structural tests (fixtures)
 // ---------------------------------------------------------------------------
 
 TEST_CASE("differential BVH on/off produces identical output", "[differential]") {
@@ -93,10 +127,11 @@ TEST_CASE("differential BVH on/off produces identical output", "[differential]")
     int rc_on  = run_renderer(scene_on,  "bvh_on");
     int rc_off = run_renderer(scene_off, "bvh_off");
 
+    if (rc_on != 0)  FAIL_CHECK("BVH on failed:\n" + read_log("bvh_on"));
+    if (rc_off != 0) FAIL_CHECK("BVH off failed:\n" + read_log("bvh_off"));
     REQUIRE(rc_on  == 0);
     REQUIRE(rc_off == 0);
 
-    // Both output files must exist and be non-empty.
     auto path_on  = OUTPUT_DIR + "bvh_on.ppm";
     auto path_off = OUTPUT_DIR + "bvh_off.ppm";
 
@@ -105,7 +140,6 @@ TEST_CASE("differential BVH on/off produces identical output", "[differential]")
     REQUIRE(fs::file_size(path_on)  > 0);
     REQUIRE(fs::file_size(path_off) > 0);
 
-    // Parse both PPMs and verify same dimensions.
     int w_on, h_on, w_off, h_off;
     std::vector<int> pix_on, pix_off;
     REQUIRE(parse_ppm(path_on,  w_on,  h_on,  pix_on));
@@ -113,17 +147,13 @@ TEST_CASE("differential BVH on/off produces identical output", "[differential]")
 
     REQUIRE(w_on == w_off);
     REQUIRE(h_on == h_off);
-
-    // Same number of pixel component values.
     REQUIRE(pix_on.size() == pix_off.size());
 
-    // BVH is purely an acceleration structure – output should be identical.
-    // Compare image statistics instead of pixel-exact matching.
     int non_zero_on = 0, non_zero_off = 0;
     for (int v : pix_on) if (v != 0) non_zero_on++;
     for (int v : pix_off) if (v != 0) non_zero_off++;
     REQUIRE(non_zero_on == non_zero_off);
-    // Same total brightness
+
     double sum_on = 0, sum_off = 0;
     for (int v : pix_on) sum_on += v;
     for (int v : pix_off) sum_off += v;
@@ -132,17 +162,15 @@ TEST_CASE("differential BVH on/off produces identical output", "[differential]")
 
 TEST_CASE("differential binary mode produces only black/white pixels", "[differential]") {
     int rc = run_renderer("../tests/fixtures/minimal_binary.json", "binary_test");
+    if (rc != 0) FAIL_CHECK("Binary renderer failed:\n" + read_log("binary_test"));
     REQUIRE(rc == 0);
+    require_valid_ppm("binary_test", 10, 10);
 
     auto path = OUTPUT_DIR + "binary_test.ppm";
-    REQUIRE(fs::exists(path));
-
     int w, h;
     std::vector<int> pixels;
     REQUIRE(parse_ppm(path, w, h, pixels));
 
-    // Each pixel has 3 components (R, G, B).
-    // In binary mode, every channel value must be 0 or 255.
     bool all_valid = true;
     for (int v : pixels) {
         if (v != 0 && v != 255) {
@@ -152,8 +180,6 @@ TEST_CASE("differential binary mode produces only black/white pixels", "[differe
     }
     REQUIRE(all_valid);
 
-    // Sanity: must have both hit and miss pixels (the scene has a sphere that
-    // doesn't fill the entire 10x10 image).
     bool has_hit  = false;
     bool has_miss = false;
     for (size_t i = 0; i + 2 < pixels.size(); i += 3) {
@@ -164,20 +190,48 @@ TEST_CASE("differential binary mode produces only black/white pixels", "[differe
     REQUIRE(has_miss);
 }
 
-TEST_CASE("differential sanitizer smoke: all TestSuite scenes render", "[differential][sanitizer]") {
-    auto scenes = get_testsuite_scenes();
-    REQUIRE(!scenes.empty());
+// ---------------------------------------------------------------------------
+// Code-path coverage via tiny fixtures
+// ---------------------------------------------------------------------------
 
-    for (const auto& scene : scenes) {
-        // Use the filename stem as the output name to avoid collisions.
-        std::string stem = fs::path(scene).stem().string();
-        int rc = run_renderer(scene, "smoke_" + stem);
-        INFO("Scene: " << scene << " exited with code " << rc);
-        REQUIRE(rc == 0);
-
-        auto out_path = OUTPUT_DIR + "smoke_" + stem + ".ppm";
-        INFO("Output: " << out_path);
-        REQUIRE(fs::exists(out_path));
-        REQUIRE(fs::file_size(out_path) > 0);
-    }
+TEST_CASE("path tracer renders without errors", "[differential][path]") {
+    int rc = run_renderer("../tests/fixtures/minimal_path.json", "path_fixture", 30);
+    if (rc != 0) FAIL_CHECK("Path tracer failed:\n" + read_log("path_fixture"));
+    REQUIRE(rc == 0);
+    require_valid_ppm("path_fixture", 16, 16);
 }
+
+TEST_CASE("path tracer with BVH and excluded object", "[differential][path][bvh]") {
+    int rc = run_renderer("../tests/fixtures/minimal_path_bvh.json", "path_bvh_fixture", 30);
+    if (rc != 0) FAIL_CHECK("Path BVH fixture failed:\n" + read_log("path_bvh_fixture"));
+    REQUIRE(rc == 0);
+    require_valid_ppm("path_bvh_fixture", 16, 16);
+}
+
+TEST_CASE("textured scene renders without errors", "[differential][texture]") {
+    int rc = run_renderer("../tests/fixtures/minimal_texture.json", "texture_fixture", 30);
+    if (rc != 0) FAIL_CHECK("Texture scene failed:\n" + read_log("texture_fixture"));
+    REQUIRE(rc == 0);
+    require_valid_ppm("texture_fixture", 16, 16);
+}
+
+// ---------------------------------------------------------------------------
+// Sanitizer smoke: lightweight TestSuite scenes (individual test cases)
+// ---------------------------------------------------------------------------
+
+#define SCENE_TEST(name, timeout_secs) \
+    TEST_CASE("smoke: " name, "[differential][sanitizer]") { \
+        std::string scene = "../TestSuite/" name ".json"; \
+        int rc = run_renderer(scene, "smoke_" name, timeout_secs); \
+        if (rc != 0) FAIL_CHECK("Scene " name " failed:\n" + read_log("smoke_" name)); \
+        REQUIRE(rc == 0); \
+        require_valid_ppm_any("smoke_" name); \
+    }
+
+SCENE_TEST("binary_primitives", 30)
+SCENE_TEST("binary_scene", 30)
+SCENE_TEST("simple_phong", 30)
+SCENE_TEST("mirror_image", 30)
+SCENE_TEST("phong_scene", 30)
+SCENE_TEST("bvh", 30)
+SCENE_TEST("refract", 60)
