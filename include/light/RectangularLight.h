@@ -55,7 +55,7 @@ Radiance phong_shading(
 
 
         //BLINN-PHONG SHADING
-        // Sample texture color (if any) for diffuse and ambient contributions
+        // Sample texture color (if any) for diffuse contribution
         Radiance texture_color = mat.diffusecolor; // Default to diffusecolor
         if (mat.has_texture) {
             texture_color = mat.get_texture_color(rec.u, rec.v); // Use texture color
@@ -74,15 +74,8 @@ Radiance phong_shading(
         total_result += diffuse + specular;
     }
 
-    // Sample texture color (if any) for ambient contribution
-    Radiance texture_color = mat.diffusecolor;
-    if (mat.has_texture) {
-        texture_color = mat.get_texture_color(rec.u, rec.v);
-    }
-    Radiance ambient_contribution = mat.kd * texture_color * ambient_light;
-
-    // Average the accumulated contributions from all samples + ambient (not affected by shadows)
-    return total_result / num_samples + ambient_contribution;
+    // Average the accumulated contributions from all samples
+    return total_result / num_samples;
 }
 
 

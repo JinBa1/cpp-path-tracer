@@ -36,7 +36,7 @@ class PointLight : public Light {
                 double shadow = shadow_factor(p, world);
                 // BLINN-PHONG SHADING
 
-                // Sample texture color (if any) for diffuse and ambient contributions
+                // Sample texture color (if any) for diffuse contribution
                 Radiance texture_color = mat.diffusecolor; // Default to diffusecolor
                 if (mat.has_texture) {
                     texture_color = mat.get_texture_color(rec.u, rec.v); // Use texture color
@@ -48,9 +48,7 @@ class PointLight : public Light {
                 Vector3 halfway = unit_vector(light_dir + view_dir);
                 double spec = pow(std::max(0.0, dot(normal, halfway)), mat.specularexponent);
                 Radiance specular = shadow * mat.ks * mat.specularcolor * light_intensity * spec;
-                // Ambient light should NOT be affected by shadows
-                Radiance ambient_contribution = mat.kd * texture_color * ambient_light;
-                return diffuse + specular + ambient_contribution;
+                return diffuse + specular;
         }
 
 

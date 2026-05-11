@@ -144,9 +144,8 @@ Radiance Camera::trace_phong(const Ray& r, const Object& world, const Light& lig
         Vector3 reflect_dir = reflect_pm(r.direction(), rec.normal);
         Ray reflect_ray(rec.p + 0.001 * reflect_dir, reflect_dir);
         reflected_color = trace_phong(reflect_ray, world, lights, depth - 1);
-        result = (1 - rec.mat_ptr->reflectivity) * local_shading +
+        result = ambient + (1 - rec.mat_ptr->reflectivity) * local_shading +
                 rec.mat_ptr->reflectivity * reflected_color;
-        // result = ambient +  local_shading + reflected_color;
         return result;
     }
 

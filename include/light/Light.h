@@ -32,6 +32,9 @@ class Light {
 
 };
 
+// NOTE: Returns zero ambient for textured materials (no UV access).
+// This is a known limitation — texture-aware ambient would require
+// IntersectionRecord parameter (out of scope for this fix).
 inline Radiance calculate_ambient(Material& mat, Radiance ambient_light) {
     // Calculate ambient light contribution
     if (mat.has_texture) {
