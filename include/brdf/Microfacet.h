@@ -102,7 +102,7 @@ namespace Microfacet {
 		double z = sqrt(std::max(0.0, 1.0 - x * x - y * y));
 
 		// Undo stretch and transform to world space
-		Vector3 m_unstretched(x / alpha, y / alpha, z);
+		Vector3 m_unstretched(alpha * x, alpha * y, z);
 		m_unstretched = unit_vector(m_unstretched);
 		return m_unstretched.x() * tangent + m_unstretched.y() * bitangent + m_unstretched.z() * n;
 	}
