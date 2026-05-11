@@ -70,6 +70,9 @@ class Parser {
 
         if (scene_data.contains("RR_PROB")) {
             cam.RR_PROB = scene_data["RR_PROB"];
+            if (cam.RR_PROB <= 0.0 || cam.RR_PROB > 1.0) {
+                throw std::runtime_error("RR_PROB must be > 0 and <= 1.0, got: " + std::to_string(cam.RR_PROB));
+            }
         }
 
         if (scene_data.contains("useBVH")) {
@@ -112,7 +115,7 @@ class Parser {
                             scene_data["scene"]["backgroundcolor"][2]);
         cam.exposure = camera_data["exposure"];
 
-        if(scene_data.contains("ambient_light")){
+        if(scene_data["scene"].contains("ambient_light")){
             cam.ambient_light = Radiance(scene_data["scene"]["ambient_light"][0], 
                             scene_data["scene"]["ambient_light"][1], 
                             scene_data["scene"]["ambient_light"][2]);
@@ -120,6 +123,9 @@ class Parser {
 
         if (camera_data.contains("samples_per_pixel")) {
             cam.samples_per_pixel = camera_data["samples_per_pixel"];
+            if (cam.samples_per_pixel <= 0) {
+                throw std::runtime_error("samples_per_pixel must be > 0, got: " + std::to_string(cam.samples_per_pixel));
+            }
             if (camera_data.contains("sampling_method")) {
                 if (camera_data["sampling_method"] == "random") {
                     cam.sampling_method = AntiAliasing::RANDOM;
