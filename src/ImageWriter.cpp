@@ -37,7 +37,7 @@ bool ImageWriter::writePPM() const {
     // Write the pixel data in ASCII format
     for (int j = 0; j < height; j++) {
         for (int i = width - 1; i >= 0; i--) {
-            int index = (j * width + i);
+            size_t index = static_cast<size_t>(j) * static_cast<size_t>(width) + static_cast<size_t>(i);
             outFile << get_color_string(pixelData[index]) << '\n';
         }
     }

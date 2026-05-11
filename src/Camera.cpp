@@ -338,7 +338,7 @@ Radiance Camera::trace_path_brdf(const Ray& r, const Object& world, const Light&
 
 std::vector<Radiance> Camera::render_path(const Object& world, Light& lights) {
     initialize();
-    std::vector<Radiance> pixelData(image_width * image_height);
+    std::vector<Radiance> pixelData(static_cast<size_t>(image_width) * static_cast<size_t>(image_height));
 
     std::vector<Vector3> poisson_samples;
     if (sampling_method == AntiAliasing::POISSON) {
@@ -367,7 +367,7 @@ std::vector<Radiance> Camera::render_path(const Object& world, Light& lights) {
                 pixel_color += trace_path(r, world, lights, nbounces);
             }
             pixel_color *= (1.0 / samples_per_pixel); // Average the samples
-            pixelData[j * image_width + i] = tone_map(pixel_color); // Tone mapping
+            pixelData[static_cast<size_t>(j) * static_cast<size_t>(image_width) + static_cast<size_t>(i)] = tone_map(pixel_color); // Tone mapping
         }
     }
 
@@ -376,7 +376,7 @@ std::vector<Radiance> Camera::render_path(const Object& world, Light& lights) {
 
 std::vector<Radiance> Camera::render_binary(const Object& world) {
     initialize();
-    std::vector<Radiance> pixelData(image_width * image_height);
+    std::vector<Radiance> pixelData(static_cast<size_t>(image_width) * static_cast<size_t>(image_height));
     for (int j = 0; j < image_height; j++) {
         std::clog << "\rRemaining rows: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
@@ -385,7 +385,7 @@ std::vector<Radiance> Camera::render_binary(const Object& world) {
             Ray r(center, ray_direction);
             // Pass `nbounces` to control recursive depth
             Radiance pixel_color = trace_binary(r, world);
-            pixelData[j * image_width + i] = pixel_color;
+            pixelData[static_cast<size_t>(j) * static_cast<size_t>(image_width) + static_cast<size_t>(i)] = pixel_color;
         }
     }
     return pixelData;
@@ -393,7 +393,7 @@ std::vector<Radiance> Camera::render_binary(const Object& world) {
 
 std::vector<Radiance> Camera::render_phong(const Object& world, const Light& lights) {
     initialize();
-    std::vector<Radiance> pixelData(image_width * image_height);
+    std::vector<Radiance> pixelData(static_cast<size_t>(image_width) * static_cast<size_t>(image_height));
     for (int j = 0; j < image_height; j++) {
         std::clog << "\rRemaining rows: " << (image_height - j) << ' ' << std::flush;
         for (int i = 0; i < image_width; i++) {
@@ -402,7 +402,7 @@ std::vector<Radiance> Camera::render_phong(const Object& world, const Light& lig
             Ray r(center, ray_direction);
             // Pass `nbounces` to control recursive depth
             Radiance pixel_color = trace_phong(r, world, lights, nbounces);
-            pixelData[j * image_width + i] = tone_map(pixel_color);
+            pixelData[static_cast<size_t>(j) * static_cast<size_t>(image_width) + static_cast<size_t>(i)] = tone_map(pixel_color);
         }
     }
     return pixelData;
