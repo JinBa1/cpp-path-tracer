@@ -38,7 +38,7 @@ Radiance phong_shading(
     const Radiance& ambient_light
 ) const override {
     // Calculate the shading contribution from the area light
-    Material mat = *rec.mat_ptr;
+    const Material* mat = rec.mat_ptr;
     Radiance total_result(0, 0, 0); // Accumulate results from all samples
 
     for (int i = 0; i < num_samples; ++i) {
@@ -56,19 +56,19 @@ Radiance phong_shading(
 
         //BLINN-PHONG SHADING
         // Sample texture color (if any) for diffuse contribution
-        Radiance texture_color = mat.diffusecolor; // Default to diffusecolor
-        if (mat.has_texture) {
-            texture_color = mat.get_texture_color(rec.u, rec.v); // Use texture color
+        Radiance texture_color = mat->diffusecolor; // Default to diffusecolor
+        if (mat->has_texture) {
+            texture_color = mat->get_texture_color(rec.u, rec.v); // Use texture color
         }
 
         // Diffuse contribution
         double diff = std::max(0.0, dot(normal, light_dir));
-        Radiance diffuse = shadow * mat.kd * texture_color * light_intensity * diff;
+        Radiance diffuse = shadow * mat->kd * texture_color * light_intensity * diff;
 
         // Specular contribution
         Vector3 halfway = unit_vector(light_dir + view_dir);
-        double spec = pow(std::max(0.0, dot(normal, halfway)), mat.specularexponent);
-        Radiance specular = shadow * mat.ks * mat.specularcolor * light_intensity * spec;
+        double spec = pow(std::max(0.0, dot(normal, halfway)), mat->specularexponent);
+        Radiance specular = shadow * mat->ks * mat->specularcolor * light_intensity * spec;
 
         // Combine diffuse and specular and accumulate
         total_result += diffuse + specular;

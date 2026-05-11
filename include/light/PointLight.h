@@ -30,24 +30,24 @@ class PointLight : public Light {
             const Object& world,
             const Radiance& ambient_light
         ) const override {
-                Material mat = *rec.mat_ptr;
+                const Material* mat = rec.mat_ptr;
                 Vector3 light_dir;
                 Radiance light_intensity = intensity_at(p, light_dir);
                 double shadow = shadow_factor(p, world);
                 // BLINN-PHONG SHADING
 
                 // Sample texture color (if any) for diffuse contribution
-                Radiance texture_color = mat.diffusecolor; // Default to diffusecolor
-                if (mat.has_texture) {
-                    texture_color = mat.get_texture_color(rec.u, rec.v); // Use texture color
+                Radiance texture_color = mat->diffusecolor; // Default to diffusecolor
+                if (mat->has_texture) {
+                    texture_color = mat->get_texture_color(rec.u, rec.v); // Use texture color
                 }
                 // Diffuse contribution
                 double diff = std::max(0.0, dot(normal, light_dir));
-                Radiance diffuse = shadow * mat.kd * texture_color * light_intensity * diff;
+                Radiance diffuse = shadow * mat->kd * texture_color * light_intensity * diff;
                 // Specular contribution
                 Vector3 halfway = unit_vector(light_dir + view_dir);
-                double spec = pow(std::max(0.0, dot(normal, halfway)), mat.specularexponent);
-                Radiance specular = shadow * mat.ks * mat.specularcolor * light_intensity * spec;
+                double spec = pow(std::max(0.0, dot(normal, halfway)), mat->specularexponent);
+                Radiance specular = shadow * mat->ks * mat->specularcolor * light_intensity * spec;
                 return diffuse + specular;
         }
 
