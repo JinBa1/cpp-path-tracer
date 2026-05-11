@@ -106,12 +106,10 @@ class PointLight : public Light {
                 }
 
                 Vector3 light_dir;
-                Radiance unused_intensity = intensity_at(p, light_dir);
-                
-                // BRDF take cares of the intensity fall off.
+                Radiance attenuated_intensity = intensity_at(p, light_dir);
                 Vector3 weight = brdf.Evaluate(light_dir, view_dir);
 
-                return intensity * weight * coefficient;
+                return shadow * attenuated_intensity * weight * coefficient;
 
         }
 
