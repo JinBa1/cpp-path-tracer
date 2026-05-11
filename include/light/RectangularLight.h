@@ -149,28 +149,26 @@ private:
         double shadow = 1.0; // Fully illuminated by default
         int depth = 0;       // Initialize recursion depth
 
-        while (world.intersect(shadow_ray, Interval(0.001, infinity), shadow_rec)) {
+        double max_t = (sample_point - p).length();
+        while (world.intersect(shadow_ray, Interval(0.001, max_t), shadow_rec)) {
             Material* mat = shadow_rec.mat_ptr;
 
             if (mat->is_refractive) {
-                // Calculate transmittance based on material properties
-                // Simplified model: no Beer's law absorption
                 double transmittance = 1.0 / mat->refractiveindex;
                 shadow *= transmittance;
 
-                // Adjust the ray to continue through the refractive object
-                    double eta = shadow_rec.front_face ? (1.0 / mat->refractiveindex) : mat->refractiveindex;
-                    Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, eta);
+                double eta = shadow_rec.front_face ? (1.0 / mat->refractiveindex) : mat->refractiveindex;
+                Vector3 refract_dir = refract(shadow_ray.direction(), shadow_rec.normal, eta);
                 shadow_ray = Ray(shadow_rec.p + 0.001 * refract_dir, refract_dir);
+                max_t = (sample_point - shadow_ray.origin()).length();
             } else {
-                // Non-refractive object fully or partially blocks the light
-                shadow *= shadow_frac; // Allow partial shadowing for opaque materials
+                shadow *= shadow_frac;
                 break;
             }
 
             depth++;
             if (depth >= 8) {
-                shadow *= shadow_frac; // Treat as partially shadowed
+                shadow *= shadow_frac;
                 break;
             }
         }

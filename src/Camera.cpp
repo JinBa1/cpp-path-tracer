@@ -203,14 +203,27 @@ Radiance Camera::trace_path_phong(const Ray& r, const Object& world, const Light
     Radiance emitted = Radiance(0,0,0);
     Vector3 view_dir = unit_vector(-r.direction());
     Radiance surface_color = lights.phong_shading(rec.p, rec.normal, view_dir, rec, world, ambient_light);
+    // Albedo for indirect diffuse bounce throughput
+    Radiance albedo = rec.mat_ptr->kd * (rec.mat_ptr->has_texture 
+        ? rec.mat_ptr->get_texture_color(rec.u, rec.v) 
+        : rec.mat_ptr->diffusecolor);
 
     // Russian Roulette: check BEFORE recursive traces
+    double rr_weight = (depth > 3) ? 1.0 / RR_PROB : 1.0;
     if (depth > 3) {
         if (random_double() > RR_PROB) {
-            return emitted;
+            // Return only non-recursive local contribution based on branch
+            if (mat->is_reflective && mat->is_refractive) {
+                return emitted;  // Fresnel blend has no local term
+            } else if (mat->is_reflective) {
+                return emitted + (1.0 - mat->reflectivity) * surface_color;
+            } else if (mat->is_refractive) {
+                return emitted + (1.0 - mat->reflectivity) * surface_color;
+            } else {
+                return emitted + surface_color;  // diffuse: full direct lighting
+            }
         }
     }
-    double rr_weight = (depth > 3) ? 1.0 / RR_PROB : 1.0;
 
     // Ideal reflection and refraction
     Radiance reflection_color(0, 0, 0);
@@ -241,19 +254,20 @@ Radiance Camera::trace_path_phong(const Ray& r, const Object& world, const Light
         double cos_theta = std::fabs(dot(-unit_vector(r.direction()), rec.normal));
         double R0 = pow((1.0 - mat->refractiveindex) / (1.0 + mat->refractiveindex), 2);
         double reflectance = R0 + (1.0 - R0) * pow(1.0 - cos_theta, 5);
-        result += reflectance * reflection_color + (1.0 - reflectance) * refraction_color;
+        result += rr_weight * (reflectance * reflection_color + (1.0 - reflectance) * refraction_color);
     } else if (mat->is_reflective) {
-        result += mat->reflectivity * reflection_color + (1.0 - mat->reflectivity) * surface_color;
+        result += (1.0 - mat->reflectivity) * surface_color + rr_weight * mat->reflectivity * reflection_color;
     } else if (mat->is_refractive) {
-        result += mat->reflectivity * refraction_color + (1.0 - mat->reflectivity) * surface_color;
+        result += (1.0 - mat->reflectivity) * surface_color + rr_weight * mat->reflectivity * refraction_color;
     } else {
-        Vector3 scatter_dir = random_in_hemisphere(rec.normal);
-        double cos_theta = dot(scatter_dir, rec.normal);
+        Vector3 scatter_dir = unit_vector(random_in_hemisphere(rec.normal));
+        double cos_theta = std::max(0.0, dot(scatter_dir, rec.normal));
         Ray scattered_ray(rec.p + 0.001 * scatter_dir, scatter_dir);
-        result += 2.0 * cos_theta * surface_color * trace_path(scattered_ray, world, lights, depth - 1);
+        Radiance indirect = 2.0 * cos_theta * albedo * trace_path(scattered_ray, world, lights, depth - 1);
+        result += surface_color + rr_weight * indirect;
     }
 
-    return rr_weight * result;
+    return result;
 }
 
 
