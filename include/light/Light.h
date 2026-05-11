@@ -32,16 +32,10 @@ class Light {
 
 };
 
-// NOTE: Returns zero ambient for textured materials (no UV access).
-// This is a known limitation — texture-aware ambient would require
-// IntersectionRecord parameter (out of scope for this fix).
-inline Radiance calculate_ambient(Material& mat, Radiance ambient_light) {
-    // Calculate ambient light contribution
-    if (mat.has_texture) {
-       return Radiance(0, 0, 0); // Skip ambient light for textured materials
-    } 
-    // use blinn-phong shading model
-    Radiance diffuse = mat.kd * mat.diffusecolor * ambient_light;
+inline Radiance calculate_ambient(const Material& mat, Radiance ambient_light, double u, double v) {
+    // Calculate ambient light contribution (texture-aware)
+    Radiance base_color = mat.has_texture ? mat.get_texture_color(u, v) : mat.diffusecolor;
+    Radiance diffuse = mat.kd * base_color * ambient_light;
     Radiance specular = mat.ks * mat.specularcolor * ambient_light;
     Radiance ambient = mat.ka * diffuse + specular;
     return ambient;

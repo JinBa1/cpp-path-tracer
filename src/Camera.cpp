@@ -128,7 +128,7 @@ Radiance Camera::trace_phong(const Ray& r, const Object& world, const Light& lig
     Radiance local_shading = lights.phong_shading(rec.p, rec.normal, view_dir, rec, world, ambient_light);
 
     // Compute ambient light contribution
-    Radiance ambient = calculate_ambient(*rec.mat_ptr, ambient_light);
+    Radiance ambient = calculate_ambient(*rec.mat_ptr, ambient_light, rec.u, rec.v);
 
     // Stop recursion if max depth is reached
     if (depth <= 0) {
@@ -144,7 +144,7 @@ Radiance Camera::trace_phong(const Ray& r, const Object& world, const Light& lig
         Vector3 reflect_dir = reflect_pm(r.direction(), rec.normal);
         Ray reflect_ray(rec.p + 0.001 * reflect_dir, reflect_dir);
         reflected_color = trace_phong(reflect_ray, world, lights, depth - 1);
-        result = ambient + (1 - rec.mat_ptr->reflectivity) * local_shading +
+        result = (1 - rec.mat_ptr->reflectivity) * (ambient + local_shading) +
                 rec.mat_ptr->reflectivity * reflected_color;
         return result;
     }
