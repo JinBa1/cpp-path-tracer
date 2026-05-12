@@ -1,6 +1,6 @@
-# C++ Path Tracer
+# C++ CPU Path Tracer -- Parallel Rendering with BVH Acceleration
 
-A CPU ray tracer and path tracer written in C++17. Parses JSON scene descriptions and renders PPM images with support for BVH acceleration, PBR materials via GGX microfacet BRDFs, Monte Carlo path tracing, and multiple tone mappers.
+A C++17 CPU renderer built as a systems and performance engineering project. Implements a tile-based parallel renderer with SAH BVH acceleration, reaching 15.7x speedup across 32 threads. Parses JSON scene descriptions and writes PPM output with support for PBR materials via GGX microfacet BRDFs, Monte Carlo path tracing, and multiple tone mappers.
 
 [![C++17](https://img.shields.io/badge/C%2B%2B-17-blue.svg)](https://isocpp.org/std/the-standard)
 [![CMake](https://img.shields.io/badge/CMake-3.10%2B-green.svg)](https://cmake.org/)
@@ -15,6 +15,92 @@ A CPU ray tracer and path tracer written in C++17. Parses JSON scene description
 | Refraction | Path Tracing | Texture | BVH |
 |:---:|:---:|:---:|:---:|
 | ![](docs/samples/refract.png) | ![](docs/samples/path_scene.png) | ![](docs/samples/texture.png) | ![](docs/samples/bvh.png) |
+
+## Performance Engineering
+
+Tile-based parallel rendering scales to 15.7x across 32 threads on a hybrid P-core/E-core CPU. The sweet spot is 8 threads (98% parallel efficiency), where the working set fits in cache and all P-cores are saturated without contention.
+
+| Threads | Median Time (s) | Speedup | Parallel Efficiency |
+|--------:|----------------:|--------:|--------------------:|
+| 1       | 37.35           | 1.00x    | --                  |
+| 2       | 20.16           | 1.85x    | 92%                 |
+| 4       | 8.96            | 4.16x    | 104%                |
+| 8       | 4.74            | 7.87x    | 98%                 |
+| 16      | 3.28            | 11.38x   | 71%                 |
+| 32      | 2.38            | 15.69x   | 49%                 |
+
+Measured on path_scene.json (1200x800, 20 SPP, BVH enabled). Full methodology, hardware spec, and reproduction steps in [PERFORMANCE.md](PERFORMANCE.md).
+
+```bash
+# Run the built-in benchmark (3 runs, median timing per thread count)
+cd build
+./ray_tracer --benchmark ../data/jsons/path_scene.json
+```
+
+## Architecture
+
+The render pipeline has a clear data flow with a single synchronization point between the tile scheduler and the PPM writer:
+
+```
+Parser -> Scene Graph -> BVH Build -> Tile Scheduler -> Worker Pool -> Framebuffer -> PPM
+```
+
+Key components:
+
+- **Tile Scheduler**: Divides the framebuffer into 32x32 pixel blocks and dispatches them to the worker pool. Pre-allocates the output vector once, avoiding per-pixel allocations in the hot path.
+- **Worker Pool**: Fixed-size thread pool (`std::thread` + task queue). Thread count configurable via `--threads N`. Each worker pulls tiles and renders them independently.
+- **SAH BVH**: Surface Area Heuristic bounding volume hierarchy. Reduces ray-scene intersection from O(n) to O(log n) for typical scenes. Built once, shared immutably across all worker threads.
+- **FancyBRDF**: PBR material system combining Lambert diffuse with GGX microfacet specular. Configurable roughness and metalness per material.
+- **Per-thread RNG**: `thread_local std::mt19937` avoids contention on the random number generator during Monte Carlo sampling.
+
+### Concurrency Design
+
+The parallel renderer is designed around zero-contention writes and immutable shared state:
+
+- **Fixed worker pool**: N `std::thread` instances, configurable via `--threads N` (default: hardware concurrency). Workers are created once and joined on shutdown.
+- **32x32 pixel tiles**: Each tile is an independent unit of work. Tiles are assigned to workers through a shared queue. The coarse granularity keeps scheduling overhead negligible.
+- **Zero synchronization on framebuffer**: Tiles write to non-overlapping regions of a pre-allocated `std::vector`. No locks, no atomics on the output path.
+- **Immutable scene graph + BVH**: The scene graph, BVH nodes, and material data are built once before rendering starts. All threads read from the same structures with no mutation.
+- **Per-thread RNG**: Each worker has its own `thread_local std::mt19937` instance. No atomic contention on the random state during path tracing.
+- **Per-thread counters**: Ray counts and intersection test counts are accumulated per-thread and summed after rendering completes, avoiding atomic operations in the hot intersection path.
+
+### Design Decisions
+
+| Decision | Rationale |
+|----------|-----------|
+| Tile-based scheduling | Cache locality within each 32x32 block. Minimal synchronization between workers. Natural load balancing since tiles vary in cost (BVH depth, material complexity). |
+| Fixed worker pool | Lifecycle control (create once, join once). Clean shutdown without dangling threads. Simpler than `std::async` per-tile, which would spawn and join thousands of threads. |
+| No external dependencies | Portability. The renderer compiles with CMake + a C++17 compiler. The only non-standard header is the vendored nlohmann/json. |
+| Per-thread counters | Accumulating stats in thread-local storage avoids atomic contention in the intersection hot path. A single reduction at the end is cheaper than millions of `fetch_add` calls. |
+| SAH BVH splitting | Surface Area Heuristic produces better trees than naive midpoint or equal-count splits, especially for scenes with uneven geometry distribution. The build cost is amortized over all rays. |
+
+## Build & Run
+
+Requirements: CMake 3.10+ and a C++17 compiler (g++ or clang++).
+
+```bash
+git clone https://github.com/JinBa1/cpp-path-tracer.git
+cd cpp-path-tracer
+mkdir build && cd build
+cmake .. && make
+```
+
+Run a scene (you must run from the `build/` directory since paths in JSON files are relative):
+
+```bash
+cd build
+
+# Single-threaded render
+./ray_tracer ../data/jsons/scene.json ../output/ my_render
+
+# Multi-threaded render (8 threads)
+./ray_tracer --threads 8 ../data/jsons/path_scene.json ../output/ path_8t
+
+# Run benchmark (3 runs per thread count, reports median times)
+./ray_tracer --benchmark ../data/jsons/path_scene.json
+```
+
+The first argument is the JSON scene file. The second and third are the output directory and filename (optional, defaults to `rendered` in the current directory). Output is written as a `.ppm` file.
 
 ## Features
 
@@ -39,26 +125,6 @@ A CPU ray tracer and path tracer written in C++17. Parses JSON scene description
 - **Depth of field**: finite aperture camera with defocus blur, configurable aperture size and focus distance
 - **Soft shadows**: rectangular area lights sampled with configurable sample count
 - **Russian Roulette**: stochastic path termination (configurable probability) to cap computation at higher bounce depths
-
-## Build & Run
-
-Requirements: CMake 3.10+ and a C++17 compiler (g++ or clang++).
-
-```bash
-git clone https://github.com/JinBa1/cpp-path-tracer.git
-cd cpp-path-tracer
-mkdir build && cd build
-cmake .. && make
-```
-
-Run a scene (you must run from the `build/` directory since paths in JSON files are relative):
-
-```bash
-cd build
-./ray_tracer ../data/jsons/scene.json ../output/ my_render
-```
-
-The first argument is the JSON scene file. The second and third are the output directory and filename (optional, defaults to `rendered` in the current directory). Output is written as a `.ppm` file.
 
 ## Scene Format
 
@@ -142,46 +208,46 @@ bash scripts/smoke_test.sh
 
 This compiles the project, runs each JSON scene through the renderer, and checks that valid PPM output files are produced. Scenes that time out (120s limit) or produce missing/empty output are reported as failures.
 
-## Architecture Overview
+## Code Map
 
 The codebase uses a header-heavy architecture where most implementation lives in `.h` files. Only four modules have separate `.cpp` files (Camera, Node, ObjectList, ImageWriter).
 
 ```
 include/
-  Camera.h          — Ray generation, render dispatch, tone mapping, all trace functions
-  Parser.h          — Header-only JSON scene parser (nlohmann/json)
-  Material.h        — Material data struct, texture loading, GGX helpers
-  ImageWriter.h     — PPM P3 file writer
+  Camera.h          -- Ray generation, render dispatch, tone mapping, all trace functions
+  Parser.h          -- Header-only JSON scene parser (nlohmann/json)
+  Material.h        -- Material data struct, texture loading, GGX helpers
+  ImageWriter.h     -- PPM P3 file writer
   object/
-    Object.h        — Abstract base class (intersect, bounding_box)
-    Sphere.h        — Analytic sphere intersection
-    Triangle.h      — Moller-Trumbore ray-triangle test
-    Cylinder.h      — Finite cylinder intersection
-    ObjectList.h    — Scene geometry collection, BVH entry point
+    Object.h        -- Abstract base class (intersect, bounding_box)
+    Sphere.h        -- Analytic sphere intersection
+    Triangle.h      -- Moller-Trumbore ray-triangle test
+    Cylinder.h      -- Finite cylinder intersection
+    ObjectList.h    -- Scene geometry collection, BVH entry point
   bvh/
-    BoundingBox.h   — AABB with ray-axis slab test
-    Node.h          — BVH node, 3 split strategies (SAH active)
+    BoundingBox.h   -- AABB with ray-axis slab test
+    Node.h          -- BVH node, 3 split strategies (SAH active)
   brdf/
-    BRDF.h          — Abstract BRDF (Evaluate, Sample)
-    Lambert.h       — Lambertian diffuse
-    Microfacet.h    — GGX NDF, Smith G, Fresnel-Schlick
-    FancyBRDF.h     — Combined Lambert + Microfacet PBR material
+    BRDF.h          -- Abstract BRDF (Evaluate, Sample)
+    Lambert.h       -- Lambertian diffuse
+    Microfacet.h    -- GGX NDF, Smith G, Fresnel-Schlick
+    FancyBRDF.h     -- Combined Lambert + Microfacet PBR material
   light/
-    Light.h         — Abstract light (phong_shading, brdf_shading)
-    PointLight.h    — Point light with shadow rays
-    RectangularLight.h — Area light with stratified sampling
-    LightList.h     — Light collection
+    Light.h         -- Abstract light (phong_shading, brdf_shading)
+    PointLight.h    -- Point light with shadow rays
+    RectangularLight.h -- Area light with stratified sampling
+    LightList.h     -- Light collection
   util/
-    Vector3.h       — Core math: Vector3, Point3, Radiance aliases
-    Ray.h           — Ray origin + direction
-    Radiance.h      — Tone mapping functions
-    Interval.h      — Min/max interval for ray parameter bounds
-    Utilities.h     — Enums, constants, RNG, math helpers
+    Vector3.h       -- Core math: Vector3, Point3, Radiance aliases
+    Ray.h           -- Ray origin + direction
+    Radiance.h      -- Tone mapping functions
+    Interval.h      -- Min/max interval for ray parameter bounds
+    Utilities.h     -- Enums, constants, RNG, math helpers
 ```
 
 ## Performance
 
-All timings from a single-threaded run on an 800x800 image, compiled with `-O1`:
+Single-threaded baseline timings on an 800x800 image, compiled with `-O1`:
 
 | Scene | Mode | Samples | BVH | Time |
 |-------|------|---------|-----|------|
@@ -190,6 +256,8 @@ All timings from a single-threaded run on an 800x800 image, compiled with `-O1`:
 | `path_scene` | Path | 20 | On | 37.31s |
 
 Timed with `std::chrono::high_resolution_clock` on the render phase only (excludes scene parsing and BVH construction). Hardware: single-threaded, GCC 13.3, Linux x86_64.
+
+For multi-threaded scaling results and full benchmark methodology, see [PERFORMANCE.md](PERFORMANCE.md).
 
 ## Dependencies
 
