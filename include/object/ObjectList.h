@@ -17,6 +17,7 @@ class ObjectList : public Object {
   public:
     std::vector<shared_ptr<Object>> objects;  // List of objects
     std::shared_ptr<Node> root;  // BVH root node
+    std::vector<shared_ptr<Object>> excluded_objects;
 
     UseBVH use_bvh = UseBVH::ENABLE;  // Use BVH or not
 

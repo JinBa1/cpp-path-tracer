@@ -5,27 +5,24 @@
 
 class Ray {
   public:
-    Ray() {}
+    Ray() : originPoint(0,0,0), vectorDirection(0,0,0), invDirection(0,0,0) {}
 
-    Ray(const Point3& rayOrigin, const Vector3& rayDirection) : originPoint(rayOrigin), vectorDirection(rayDirection) {}
+    Ray(const Point3& rayOrigin, const Vector3& rayDirection)
+      : originPoint(rayOrigin), vectorDirection(rayDirection),
+        invDirection(1.0/rayDirection[0], 1.0/rayDirection[1], 1.0/rayDirection[2]) {}
 
     Point3 at(double t) const {
-      // Returns the point at parameter t along the ray
       return  t*vectorDirection + originPoint;
     }
 
-    const Point3& origin() const  { 
-      // Returns the origin of the ray
-      return originPoint; 
-    }
-    const Vector3& direction() const {
-      // Returns the direction of the ray
-      return vectorDirection; 
-    }
+    const Point3& origin() const  { return originPoint; }
+    const Vector3& direction() const { return vectorDirection; }
+    const Vector3& inv_direction() const { return invDirection; }
 
   private:
     Point3 originPoint;
     Vector3 vectorDirection;
+    Vector3 invDirection;
 };
 
 #endif

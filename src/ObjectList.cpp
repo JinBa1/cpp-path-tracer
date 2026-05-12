@@ -23,15 +23,14 @@ void ObjectList::build() {
     std::vector<std::shared_ptr<Object>> bvh_objects;
 
     for (const auto& obj : objects) {
-        if (!obj->exclude_from_bvh()) {
-            // if the object is not excluded from the BVH, add it to the list
+        if (obj->exclude_from_bvh()) {
+            excluded_objects.push_back(obj);
+        } else {
             bvh_objects.push_back(obj);
         }
     }
     if (!bvh_objects.empty()) {
         root = std::make_shared<Node>(bvh_objects, 0, bvh_objects.size());
-        // std::cout << "BVH Structure:\n";
-        // print_bvh_structure(root);
     }
 }
 
@@ -49,8 +48,8 @@ bool ObjectList::intersect_bvh_enabled(const Ray& r, Interval ray_t, Intersectio
     }
 
     // Test excluded objects
-    for (const auto& object : objects) {
-        if (object->exclude_from_bvh() && object->intersect(r, Interval(ray_t.min, nearest_t), temp_rec)) {
+    for (const auto& object : excluded_objects) {
+        if (object->intersect(r, Interval(ray_t.min, nearest_t), temp_rec)) {
             intersected = true;
             nearest_t = temp_rec.t;
             rec = temp_rec;

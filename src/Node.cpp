@@ -7,7 +7,8 @@ void Node::random_splits(std::vector<shared_ptr<Object>>& objects, size_t start,
     // Check if only one object (leaf node)
     size_t object_span = end - start;
     if (object_span == 1) {
-        left = right = objects[start];
+        left = objects[start];
+        right = nullptr;
         bbox = objects[start]->bounding_box();
         return;
     }
@@ -30,7 +31,8 @@ void Node::la_splits(std::vector<shared_ptr<Object>>& objects, size_t start, siz
     if (objects.empty()) return;
     size_t object_span = end - start;
     if (object_span == 1) {
-        left = right = objects[start];
+        left = objects[start];
+        right = nullptr;
         bbox = objects[start]->bounding_box();
         return;
     }
@@ -57,7 +59,8 @@ void Node::sah_splits(std::vector<shared_ptr<Object>>& objects, size_t start, si
     if (objects.empty()) return;
     size_t object_span = end - start;
     if (object_span == 1) {
-        left = right = objects[start];
+        left = objects[start];
+        right = nullptr;
         bbox = objects[start]->bounding_box();
         return;
     }
@@ -84,7 +87,7 @@ void Node::sah_splits(std::vector<shared_ptr<Object>>& objects, size_t start, si
             left_boxes[i - start] = left_bbox;
         }
         for (size_t i = end - 1; i > start; i--) {
-            right_bbox = BoundingBox(right_bbox, objects[i - 1]->bounding_box());
+            right_bbox = BoundingBox(right_bbox, objects[i]->bounding_box());
             right_boxes[i - start - 1] = right_bbox;
         }
         // Compute SAH cost for each split point

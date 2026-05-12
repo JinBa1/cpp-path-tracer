@@ -40,13 +40,12 @@ class BoundingBox {
     }
 
     bool intersect(const Ray& r, Interval ray_t) const {
-        // Check if the ray intersects the AABB
         const Point3& ray_orig = r.origin();
-        const Vector3& ray_dir = r.direction();
+        const Vector3& ray_inv_dir = r.inv_direction();
 
-        if (!axis_intersect(ray_orig[0], ray_dir[0], x, ray_t)) return false;
-        if (!axis_intersect(ray_orig[1], ray_dir[1], y, ray_t)) return false;
-        if (!axis_intersect(ray_orig[2], ray_dir[2], z, ray_t)) return false;
+        if (!axis_intersect(ray_orig[0], ray_inv_dir[0], x, ray_t)) return false;
+        if (!axis_intersect(ray_orig[1], ray_inv_dir[1], y, ray_t)) return false;
+        if (!axis_intersect(ray_orig[2], ray_inv_dir[2], z, ray_t)) return false;
 
         return true;
     }
@@ -79,9 +78,7 @@ class BoundingBox {
             if (z.size() < delta) z = z.expand(delta);
         }
 
-        bool axis_intersect(double origin, double direction, const Interval& axis, Interval& ray_t) const {
-            // Check if the ray intersects the axis-aligned interval
-            double adinv = 1.0 / direction;
+        bool axis_intersect(double origin, double adinv, const Interval& axis, Interval& ray_t) const {
             auto t0 = (axis.min - origin) * adinv;
             auto t1 = (axis.max - origin) * adinv;
 
