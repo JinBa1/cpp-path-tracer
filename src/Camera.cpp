@@ -374,6 +374,67 @@ std::vector<Radiance> Camera::render_path(const Object& world, Light& lights) {
     return pixelData;
 }
 
+std::vector<Radiance> Camera::render_path_parallel(const Object& world, Light& lights, size_t num_threads) {
+    initialize();
+
+    std::vector<Radiance> pixelData(static_cast<size_t>(image_width) * static_cast<size_t>(image_height));
+
+    std::vector<Vector3> poisson_samples;
+    if (sampling_method == AntiAliasing::POISSON) {
+        double min_distance = 0.5 / std::sqrt(samples_per_pixel);
+        poisson_samples = generate_poisson_disk_samples(samples_per_pixel, min_distance);
+    }
+
+    const int tile_size = 32;
+    const int tiles_x = (image_width + tile_size - 1) / tile_size;
+    const int tiles_y = (image_height + tile_size - 1) / tile_size;
+
+    ThreadPool pool(num_threads);
+    std::vector<std::future<void>> futures;
+    futures.reserve(static_cast<size_t>(tiles_x) * static_cast<size_t>(tiles_y));
+
+    for (int ty = 0; ty < tiles_y; ++ty) {
+        for (int tx = 0; tx < tiles_x; ++tx) {
+            int x0 = tx * tile_size;
+            int y0 = ty * tile_size;
+            int x1 = std::min(x0 + tile_size, image_width);
+            int y1 = std::min(y0 + tile_size, image_height);
+
+            futures.push_back(pool.enqueue([this, &world, &lights, &pixelData, &poisson_samples, x0, y0, x1, y1]() {
+                for (int j = y0; j < y1; ++j) {
+                    for (int i = x0; i < x1; ++i) {
+                        Radiance pixel_color(0, 0, 0);
+                        for (int sample = 0; sample < samples_per_pixel; ++sample) {
+                            Vector3 offset;
+                            switch (sampling_method) {
+                                case AntiAliasing::RANDOM:
+                                    offset = sample_offset();
+                                    break;
+                                case AntiAliasing::JITTERED:
+                                    offset = jittered_sample(sample);
+                                    break;
+                                case AntiAliasing::POISSON:
+                                    offset = poisson_samples[sample % poisson_samples.size()];
+                                    break;
+                            }
+                            Ray r = get_sampled_ray(i, j, offset);
+                            pixel_color += trace_path(r, world, lights, nbounces);
+                        }
+                        pixel_color *= (1.0 / samples_per_pixel);
+                        pixelData[static_cast<size_t>(j) * static_cast<size_t>(image_width) + static_cast<size_t>(i)] = tone_map(pixel_color);
+                    }
+                }
+            }));
+        }
+    }
+
+    for (auto& f : futures) {
+        f.get();
+    }
+
+    return pixelData;
+}
+
 std::vector<Radiance> Camera::render_binary(const Object& world) {
     initialize();
     std::vector<Radiance> pixelData(static_cast<size_t>(image_width) * static_cast<size_t>(image_height));

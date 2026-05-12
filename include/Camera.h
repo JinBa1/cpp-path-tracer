@@ -6,6 +6,7 @@
 #include "ImageWriter.h"
 #include "light/Light.h"
 #include "light/LightList.h"
+#include "ThreadPool.h"
 
 class Camera {
   public:
@@ -38,6 +39,8 @@ class Camera {
     ToneMapper tone_mapper = ToneMapper::LUMINANCE; // Tone mapping method
 
     AntiAliasing sampling_method = AntiAliasing::POISSON; // Anti-aliasing method
+
+    size_t num_threads = 1; // Thread count for parallel rendering
 
     void print_specs() {
         std::cout << "Specifications:" << std::endl;
@@ -79,10 +82,16 @@ class Camera {
                 output_image(render_phong(world, lights));
                 break;
             case RenderMode::PATH:
-                output_image(render_path(world, lights));
+                if (num_threads > 1) {
+                    output_image(render_path_parallel(world, lights, num_threads));
+                } else {
+                    output_image(render_path(world, lights));
+                }
                 break;
         }
     }
+
+    std::vector<Radiance> render_path_parallel(const Object& world, Light& lights, size_t num_threads);
 
 
 
