@@ -8,7 +8,7 @@ class Cylinder : public Object {
 
   public:
 
-  mutable uint64_t hit_call_count = 0;
+  inline static thread_local uint64_t hit_call_count = 0;
     Cylinder(const Point3& center, const Vector3& axis, double radius, double height, Material* mat_ptr, bool exclude_from_bvh = false)
         : center(center), axis(unit_vector(axis)), radius(std::fmax(0, radius)),
          height(std::fmax(0, height)), mat_ptr(mat_ptr), excluded(exclude_from_bvh) {}

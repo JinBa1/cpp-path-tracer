@@ -7,7 +7,7 @@
 class Triangle : public Object {
   public:
 
-    mutable uint64_t hit_call_count = 0; // Number of times the intersection test was called
+    inline static thread_local uint64_t hit_call_count = 0; // Number of times the intersection test was called
 
     Triangle(const Point3& v0, const Point3& v1, const Point3& v2, Material* mat_ptr,
              const Vector3& uv0 = Vector3(0,0,0), const Vector3& uv1= Vector3(1,0,0),

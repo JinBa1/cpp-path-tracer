@@ -15,8 +15,20 @@ file(GLOB SOURCES "src/*.cpp")
 # Add the executable
 add_executable(ray_tracer ${SOURCES})
 
-# Add optimization flag for ray_tracer target
-target_compile_options(ray_tracer PRIVATE -O1)
+# Build-type-aware compile options
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    target_compile_options(ray_tracer PRIVATE -O2 -march=native)
+elseif(CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+    target_compile_options(ray_tracer PRIVATE -O2 -g -march=native)
+elseif(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(ray_tracer PRIVATE -O0 -g)
+else()
+    target_compile_options(ray_tracer PRIVATE -O2)
+endif()
 
 # Optional sanitizer flags (ASAN + UBSAN combined)
 option(ENABLE_ASAN "Enable AddressSanitizer" OFF)

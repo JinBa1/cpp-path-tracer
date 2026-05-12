@@ -10,7 +10,7 @@
 class Sphere : public Object {
   public:
 
-    mutable uint64_t hit_call_count = 0; // Number of times the intersection test was called
+    inline static thread_local uint64_t hit_call_count = 0; // Number of times the intersection test was called
 
     Sphere(const Point3& center, double radius, Material* mat_ptr, bool exclude_from_bvh = false)
      : center(center), radius(std::fmax(0,radius)), mat_ptr(mat_ptr), excluded(exclude_from_bvh) {}
