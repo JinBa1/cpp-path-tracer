@@ -5,6 +5,7 @@
 #include <vector>
 #include <chrono>
 #include <iomanip>
+#include <thread>
 #include "Camera.h"
 // #include "object/Object.h"
 #include "object/ObjectList.h"
@@ -22,14 +23,38 @@
 int main(int argc, char* argv[]) {
     // Check if the correct number of arguments is provided
     if (argc < 2) {
-        std::cerr << "Usage: " << argv[0] << " <jsonName> [outputDir] [outputName]" << std::endl;
+        std::cerr << "Usage: " << argv[0] << " <jsonName> [outputDir] [outputName] [--threads N] [--benchmark]" << std::endl;
         return 1;
     }
 
-    // Get the JSON name and optional output ID from the command line
     std::string jsonName = argv[1];
-    std::string outputDir = (argc > 2) ? argv[2] : ""; // Default output directory is empty
-    std::string imageName = (argc > 3) ? argv[3] : "rendered"; // Default output ID is 102
+
+    // Parse positional args (outputDir, imageName), stopping at first flag
+    std::string outputDir;
+    std::string imageName = "rendered";
+    int positional = 0;
+    for (int i = 2; i < argc; ++i) {
+        if (std::string(argv[i]).substr(0, 2) == "--") break;
+        ++positional;
+        if (positional == 1) outputDir = argv[i];
+        else if (positional == 2) imageName = argv[i];
+    }
+
+    size_t thread_count = 1;
+    bool benchmark_mode = false;
+
+    for (int i = 2; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "--threads" && i + 1 < argc) {
+            thread_count = std::stoul(argv[++i]);
+            if (thread_count == 0) {
+                thread_count = std::thread::hardware_concurrency();
+                if (thread_count == 0) thread_count = 4;
+            }
+        } else if (arg == "--benchmark") {
+            benchmark_mode = true;
+        }
+    }
 
     std::string extension = ".ppm";
 
@@ -48,29 +73,44 @@ int main(int argc, char* argv[]) {
 
     cam.filename = outputDir + imageName + extension;
 
-
     // // Build the BVH
     if (world.use_bvh == UseBVH::ENABLE) {
         world.build();
     }
 
     cam.print_specs();
-    // Start timing
-    auto start = std::chrono::high_resolution_clock::now();
 
+    if (benchmark_mode) {
+        // Benchmark: render 1T baseline, then NT, print comparison
+        cam.num_threads = 1;
+        cam.filename = outputDir + imageName + "_1T" + extension;
 
+        auto start_1t = std::chrono::high_resolution_clock::now();
+        cam.render(world, lights);
+        auto end_1t = std::chrono::high_resolution_clock::now();
+        double time_1t = std::chrono::duration_cast<std::chrono::milliseconds>(end_1t - start_1t).count() / 1000.0;
 
-    // cam.render_binary(world);
-    cam.render(world, lights);
+        cam.num_threads = thread_count;
+        cam.filename = outputDir + imageName + "_NT" + extension;
 
-    // End timing
-    auto end = std::chrono::high_resolution_clock::now();
-    // Calculate elapsed time
-    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-    // Print runtime to terminal
-    // Convert to seconds and print with 2 decimal places
-    std::cout << std::fixed << std::setprecision(2);
-    std::cout << "Rendering completed in " << duration / 1000.0 << " seconds." << std::endl;
+        auto start_nt = std::chrono::high_resolution_clock::now();
+        cam.render(world, lights);
+        auto end_nt = std::chrono::high_resolution_clock::now();
+        double time_nt = std::chrono::duration_cast<std::chrono::milliseconds>(end_nt - start_nt).count() / 1000.0;
+
+        double speedup = time_1t / time_nt;
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << "Speedup: " << speedup << "x (1T: " << time_1t << "s, NT: " << time_nt << "s, " << thread_count << " threads)" << std::endl;
+    } else {
+        cam.num_threads = thread_count;
+
+        auto start = std::chrono::high_resolution_clock::now();
+        cam.render(world, lights);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+        std::cout << std::fixed << std::setprecision(2);
+        std::cout << "Rendering completed in " << duration / 1000.0 << " seconds." << std::endl;
+    }
 
     world.log_hit_counts();
 
