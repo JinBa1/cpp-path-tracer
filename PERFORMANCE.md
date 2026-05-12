@@ -2,7 +2,7 @@
 
 ## Methodology
 
-- **Metric**: Wall-clock render time (render phase only, excludes scene parsing, BVH construction, PPM write)
+- **Metric**: Wall-clock time for full render pipeline (includes scene rendering and PPM file write; excludes scene parsing and BVH construction which happen before timing starts)
 - **Runs**: 3 per configuration, median reported
 - **Baseline**: Single-threaded at -O2 (same binary as multi-threaded runs, `--threads 1`)
 - **Thread counts**: 1, 2, 4, 8, 16, 32

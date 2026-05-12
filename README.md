@@ -34,7 +34,7 @@ Measured on path_scene.json (1200x800, 20 SPP, BVH enabled). Full methodology, h
 ```bash
 # Run the built-in benchmark (3 runs, median timing per thread count)
 cd build
-./ray_tracer --benchmark ../data/jsons/path_scene.json
+./ray_tracer ../data/jsons/path_scene.json --benchmark
 ```
 
 ## Architecture
@@ -57,7 +57,7 @@ Key components:
 
 The parallel renderer is designed around zero-contention writes and immutable shared state:
 
-- **Fixed worker pool**: N `std::thread` instances, configurable via `--threads N` (default: hardware concurrency). Workers are created once and joined on shutdown.
+- **Fixed worker pool**: N `std::thread` instances, configurable via `--threads N` (default: 1, single-threaded). Workers are created once and joined on shutdown.
 - **32x32 pixel tiles**: Each tile is an independent unit of work. Tiles are assigned to workers through a shared queue. The coarse granularity keeps scheduling overhead negligible.
 - **Zero synchronization on framebuffer**: Tiles write to non-overlapping regions of a pre-allocated `std::vector`. No locks, no atomics on the output path.
 - **Immutable scene graph + BVH**: The scene graph, BVH nodes, and material data are built once before rendering starts. All threads read from the same structures with no mutation.
@@ -94,10 +94,10 @@ cd build
 ./ray_tracer ../data/jsons/scene.json ../output/ my_render
 
 # Multi-threaded render (8 threads)
-./ray_tracer --threads 8 ../data/jsons/path_scene.json ../output/ path_8t
+./ray_tracer ../data/jsons/path_scene.json ../output/ path_8t --threads 8
 
 # Run benchmark (3 runs per thread count, reports median times)
-./ray_tracer --benchmark ../data/jsons/path_scene.json
+./ray_tracer ../data/jsons/path_scene.json --benchmark
 ```
 
 The first argument is the JSON scene file. The second and third are the output directory and filename (optional, defaults to `rendered` in the current directory). Output is written as a `.ppm` file.
